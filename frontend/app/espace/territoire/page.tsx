@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Plus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -93,7 +94,10 @@ function SectionRegions() {
       actionsEnTete={
         <Dialog open={dialogue.ouvert} onOpenChange={dialogue.setOuvert}>
           <DialogTrigger asChild>
-            <Button size="sm">Ajouter</Button>
+            <Button size="sm">
+              <Plus className="mr-1.5 h-4 w-4" />
+              Ajouter
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -156,7 +160,10 @@ function SectionPrefectures() {
       actionsEnTete={
         <Dialog open={dialogue.ouvert} onOpenChange={dialogue.setOuvert}>
           <DialogTrigger asChild>
-            <Button size="sm">Ajouter</Button>
+            <Button size="sm">
+              <Plus className="mr-1.5 h-4 w-4" />
+              Ajouter
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -227,7 +234,10 @@ function SectionSousPrefectures() {
       actionsEnTete={
         <Dialog open={dialogue.ouvert} onOpenChange={dialogue.setOuvert}>
           <DialogTrigger asChild>
-            <Button size="sm">Ajouter</Button>
+            <Button size="sm">
+              <Plus className="mr-1.5 h-4 w-4" />
+              Ajouter
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -300,7 +310,10 @@ function SectionCommunes() {
       actionsEnTete={
         <Dialog open={dialogue.ouvert} onOpenChange={dialogue.setOuvert}>
           <DialogTrigger asChild>
-            <Button size="sm">Ajouter</Button>
+            <Button size="sm">
+              <Plus className="mr-1.5 h-4 w-4" />
+              Ajouter
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -377,7 +390,10 @@ function SectionQuartiers() {
       actionsEnTete={
         <Dialog open={dialogue.ouvert} onOpenChange={dialogue.setOuvert}>
           <DialogTrigger asChild>
-            <Button size="sm">Ajouter</Button>
+            <Button size="sm">
+              <Plus className="mr-1.5 h-4 w-4" />
+              Ajouter
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>

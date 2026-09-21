@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { KeyRound, Plus, Send, UserX } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -119,10 +120,12 @@ function ActionsUtilisateur({ utilisateur, onChange }: { utilisateur: Utilisateu
         <DialogueAffecter utilisateur={utilisateur} onAffecte={onChange} />
       )}
       <Button size="sm" variant="outline" disabled={enCours !== null} onClick={reinitialiser}>
+        <KeyRound className="mr-1.5 h-4 w-4" />
         Réinitialiser mdp
       </Button>
       {utilisateur.statut !== "revoque" && (
         <Button size="sm" variant="destructive" disabled={enCours !== null} onClick={revoquer}>
+          <UserX className="mr-1.5 h-4 w-4" />
           Révoquer
         </Button>
       )}
@@ -181,7 +184,10 @@ function DialogueCreerCompte({ onCree }: { onCree: () => void }) {
       }}
     >
       <DialogTrigger asChild>
-        <Button size="sm">Créer un compte</Button>
+        <Button size="sm">
+          <Plus className="mr-1.5 h-4 w-4" />
+          Créer un compte
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -290,6 +296,7 @@ function DialogueAffecter({ utilisateur, onAffecte }: { utilisateur: Utilisateur
     <Dialog open={ouvert} onOpenChange={setOuvert}>
       <DialogTrigger asChild>
         <Button size="sm" variant="secondary">
+          <Send className="mr-1.5 h-4 w-4" />
           {dejaAffecte ? "Réaffecter" : "Affecter"}
         </Button>
       </DialogTrigger>
