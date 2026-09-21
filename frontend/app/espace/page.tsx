@@ -11,14 +11,21 @@ import {
   Map as MapIcon,
   School,
   Users,
+  Wrench,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api";
-import { LIBELLES_PROFIL, useUtilisateurCourant } from "@/lib/contexte-utilisateur";
+import { LIBELLES_PROFIL, useUtilisateurCourant, type Utilisateur } from "@/lib/contexte-utilisateur";
 import { cn } from "@/lib/utils";
+
+// Profils avec périmètre de gestion (national ou territorial) : leurs comptages
+// École/Enseignants/Élèves/Équipements sont déjà bornés côté backend par
+// ecoles_visibles() (US-3.4/US-4.5) — le dashboard n'a qu'à lire les compteurs.
+const PROFILS_NATIONAUX = new Set(["dge", "ministre", "cabinet"]);
+const PROFILS_PERIMETRE = new Set(["dge", "ministre", "cabinet", "ir", "dpe", "dce", "dse", "directeur_ecole"]);
 
 export default function EspacePage() {
   const utilisateur = useUtilisateurCourant();
@@ -30,6 +37,10 @@ export default function EspacePage() {
 
   if (utilisateur.profil === "enseignant") {
     return <EspaceEnseignant />;
+  }
+
+  if (PROFILS_PERIMETRE.has(utilisateur.profil)) {
+    return <EspacePerimetre utilisateur={utilisateur} />;
   }
 
   return (
@@ -244,6 +255,114 @@ function EspaceEnseignant() {
         Saisie des notes, appel et demande de mutation seront disponibles dans les prochains sprints
         (Pédagogie, puis circuit de validation).
       </p>
+    </div>
+  );
+}
+
+type CompteursPerimetre = { ecoles?: number; enseignants?: number; eleves?: number; equipements?: number };
+
+function libellePerimetre(utilisateur: Utilisateur, nomEcole: string | null): string {
+  if (PROFILS_NATIONAUX.has(utilisateur.profil)) {
+    return "Vue nationale — toutes les écoles du pays";
+  }
+  if (utilisateur.profil === "directeur_ecole") {
+    return nomEcole ? `École ${nomEcole}` : "Aucune école assignée pour l'instant";
+  }
+  const aff = utilisateur.affectation_active;
+  if (utilisateur.profil === "dse") return aff?.sous_prefecture ? `Sous-préfecture de ${aff.sous_prefecture}` : "Aucun périmètre affecté";
+  if (utilisateur.profil === "dce") return aff?.commune ? `Commune de ${aff.commune}` : "Aucun périmètre affecté";
+  if (utilisateur.profil === "dpe") return aff?.prefecture ? `Préfecture de ${aff.prefecture}` : "Aucun périmètre affecté";
+  if (utilisateur.profil === "ir") return aff?.region ? `Région de ${aff.region}` : "Aucun périmètre affecté";
+  return "Aucun périmètre affecté";
+}
+
+function EspacePerimetre({ utilisateur }: { utilisateur: Utilisateur }) {
+  const [stats, setStats] = useState<CompteursPerimetre>({});
+  const [nomEcole, setNomEcole] = useState<string | null>(null);
+  const [chargement, setChargement] = useState(true);
+
+  useEffect(() => {
+    async function charger() {
+      const [ecoles, enseignants, eleves, equipements] = await Promise.all([
+        apiFetch("/etablissements/ecoles/").then((r) => r.json()),
+        apiFetch("/comptes/enseignants/").then((r) => r.json()),
+        apiFetch("/pedagogie/eleves/").then((r) => r.json()),
+        apiFetch("/etablissements/equipements/").then((r) => r.json()),
+      ]);
+      setStats({
+        ecoles: ecoles.count,
+        enseignants: enseignants.count,
+        eleves: eleves.count,
+        equipements: equipements.count,
+      });
+      if (utilisateur.profil === "directeur_ecole" && ecoles.results?.[0]) {
+        setNomEcole(ecoles.results[0].nom);
+      }
+      setChargement(false);
+    }
+    charger();
+  }, [utilisateur.profil]);
+
+  const cartes = [
+    { label: "Écoles", valeur: stats.ecoles, icone: School, accent: "bg-primary" },
+    { label: "Enseignants", valeur: stats.enseignants, icone: GraduationCap, accent: "bg-accent" },
+    { label: "Élèves", valeur: stats.eleves, icone: Users, accent: "bg-succes" },
+    { label: "Équipements", valeur: stats.equipements, icone: Wrench, accent: "bg-primary" },
+  ];
+
+  const aucunPerimetre =
+    !PROFILS_NATIONAUX.has(utilisateur.profil) &&
+    utilisateur.profil !== "directeur_ecole" &&
+    !utilisateur.affectation_active;
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-lg bg-primary p-6 text-primary-foreground">
+        <h1 className="text-2xl font-bold">Tableau de bord</h1>
+        <p className="text-primary-foreground/70">{libellePerimetre(utilisateur, nomEcole)}</p>
+      </div>
+
+      {aucunPerimetre && (
+        <Card className="border-accent">
+          <CardContent className="p-4 text-sm text-muted-foreground">
+            Aucune affectation active n&apos;est rattachée à ce compte — le Super Admin doit vous affecter
+            à une zone territoriale pour que les données correspondantes s&apos;affichent ici.
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {cartes.map((c) => {
+          const Icone = c.icone;
+          return (
+            <Card key={c.label} className="overflow-hidden">
+              <div className={cn("h-1", c.accent)} />
+              <CardContent className="p-4">
+                <Icone className="mb-2 h-5 w-5 text-muted-foreground" />
+                <p className="text-2xl font-bold text-primary">{chargement ? "…" : c.valeur ?? 0}</p>
+                <p className="text-sm text-muted-foreground">{c.label}</p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Accès rapide</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3">
+          <Button variant="secondary" asChild>
+            <a href="/espace/ecoles">Voir les écoles</a>
+          </Button>
+          <Button variant="secondary" asChild>
+            <a href="/espace/enseignants">Voir les enseignants</a>
+          </Button>
+          <Button variant="secondary" asChild>
+            <a href="/espace/eleves">Voir les élèves</a>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
