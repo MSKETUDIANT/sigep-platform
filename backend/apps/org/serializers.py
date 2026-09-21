@@ -74,3 +74,33 @@ class EcoleSerializer(serializers.ModelSerializer):
         if schema == "B" and not quartier:
             raise serializers.ValidationError("Le schéma B requiert un quartier.")
         return attrs
+
+
+class EcolePubliqueSerializer(serializers.ModelSerializer):
+    """US-5.1 (recherche) et US-5.2 (carte) — portail citoyen, sans compte.
+    Champs volontairement limités à ce qui est déjà public : ni directeur, ni
+    effectifs détaillés, ni score/état interne de l'établissement."""
+
+    region_nom = serializers.CharField(source="region.nom", read_only=True, default=None)
+    prefecture_nom = serializers.CharField(source="prefecture.nom", read_only=True, default=None)
+    commune_nom = serializers.CharField(source="commune.nom", read_only=True, default=None)
+    sous_prefecture_nom = serializers.CharField(source="sous_prefecture.nom", read_only=True, default=None)
+    quartier_nom = serializers.CharField(source="quartier.nom", read_only=True, default=None)
+    type_ecole_display = serializers.CharField(source="get_type_ecole_display", read_only=True)
+    statut_ouverture_display = serializers.CharField(source="get_statut_ouverture_display", read_only=True)
+    latitude = serializers.SerializerMethodField()
+    longitude = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Ecole
+        fields = [
+            "id", "code_ecole", "nom", "type_ecole", "type_ecole_display",
+            "region_nom", "prefecture_nom", "commune_nom", "sous_prefecture_nom", "quartier_nom",
+            "statut_ouverture", "statut_ouverture_display", "adresse", "latitude", "longitude",
+        ]
+
+    def get_latitude(self, obj):
+        return obj.coordonnees_gps.y if obj.coordonnees_gps else None
+
+    def get_longitude(self, obj):
+        return obj.coordonnees_gps.x if obj.coordonnees_gps else None

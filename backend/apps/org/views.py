@@ -8,8 +8,13 @@ from rest_framework.response import Response
 from apps.aud.services import consigner
 from apps.core.permissions import EstSuperAdmin
 
-from .models import AffectationResponsable, StatutAffectation
-from .serializers import AffectationResponsableSerializer, EcoleSerializer, ReaffectationSerializer
+from .models import AffectationResponsable, Ecole, StatutAffectation
+from .serializers import (
+    AffectationResponsableSerializer,
+    EcolePubliqueSerializer,
+    EcoleSerializer,
+    ReaffectationSerializer,
+)
 from .services import ecoles_visibles
 
 
@@ -113,3 +118,16 @@ class EcoleViewSet(viewsets.ModelViewSet):
             cible_id=ecole.id,
             detail=f"{ecole.code_ecole} — {ecole.nom} modifiée",
         )
+
+
+class EcolePubliqueViewSet(viewsets.ReadOnlyModelViewSet):
+    """US-5.1 (recherche publique) et US-5.2 (carte publique) — portail
+    citoyen, aucune authentification requise."""
+
+    queryset = Ecole.objects.filter(actif=True).select_related(
+        "region", "prefecture", "commune", "sous_prefecture", "quartier"
+    )
+    serializer_class = EcolePubliqueSerializer
+    permission_classes = [permissions.AllowAny]
+    search_fields = ["nom", "code_ecole"]
+    filterset_fields = ["statut_ouverture", "type_ecole", "region", "prefecture", "commune"]
