@@ -62,7 +62,7 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen">
       {/* Panneau institutionnel — masqué sur mobile, la connexion reste utilisable en plein écran */}
-      <div className="relative hidden w-1/2 flex-col bg-primary px-14 py-14 text-primary-foreground lg:flex">
+      <div className="relative hidden w-1/2 flex-col bg-[hsl(163,38%,20%)] px-14 py-14 text-primary-foreground lg:flex">
         <div className="relative flex items-center gap-3">
           <div className="flex gap-1">
             <span className="h-2.5 w-2.5 rounded-full bg-guinee-rouge" />
