@@ -10,6 +10,7 @@ export function SectionTable<T extends { id: string }>({
   erreur,
   colonnes,
   actionsEnTete,
+  filtres,
 }: {
   titre: string;
   items: T[];
@@ -17,6 +18,8 @@ export function SectionTable<T extends { id: string }>({
   erreur?: string | null;
   colonnes: Colonne<T>[];
   actionsEnTete?: React.ReactNode;
+  /** Barre de recherche/pastilles de filtre, affichée sous le titre. */
+  filtres?: React.ReactNode;
 }) {
   return (
     <Card>
@@ -25,6 +28,7 @@ export function SectionTable<T extends { id: string }>({
         {actionsEnTete}
       </CardHeader>
       <CardContent>
+        {filtres && <div className="mb-4 flex flex-wrap items-center gap-3">{filtres}</div>}
         {erreur && <p className="text-sm text-destructive">{erreur}</p>}
         {chargement ? (
           <p className="text-sm text-muted-foreground">Chargement...</p>

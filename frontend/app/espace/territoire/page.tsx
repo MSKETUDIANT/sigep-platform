@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Building2, Landmark, type LucideIcon, Map as MapIcon, MapPin, Navigation, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -89,22 +89,69 @@ function StatutModifiable({ valeur, onChange }: { valeur: string; onChange: (v: 
   );
 }
 
+/** Badge iconographique par niveau territorial — une région/préfecture n'est pas une
+ * personne, donc pas d'avatar à initiales ici, mais un repère visuel cohérent avec
+ * le tableau de bord et la sidebar. */
+function IconeNiveau({ icone: Icone, accent, nom }: { icone: LucideIcon; accent: string; nom: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className={cn("flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-white", accent)}>
+        <Icone className="h-4 w-4" />
+      </div>
+      <span className="font-medium">{nom}</span>
+    </div>
+  );
+}
+
+function PastillesFiltre<T extends string>({
+  options,
+  valeur,
+  onChange,
+}: {
+  options: { valeur: T; label: string }[];
+  valeur: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map((o) => (
+        <button
+          key={o.valeur}
+          onClick={() => onChange(o.valeur)}
+          className={cn(
+            "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+            valeur === o.valeur
+              ? "bg-primary text-primary-foreground"
+              : "bg-card text-muted-foreground hover:bg-muted"
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function SectionRegions() {
   const { items, chargement, erreur, creer } = useRessource<Region>("/territoire/regions/");
+  const [recherche, setRecherche] = useState("");
   const [nom, setNom] = useState("");
   const [code, setCode] = useState("");
   const [chefLieu, setChefLieu] = useState("");
   const dialogue = useFormulaireDialogue<Record<string, unknown>>((payload) => creer(payload));
 
+  const itemsFiltres = items.filter((r) => r.nom.toLowerCase().includes(recherche.toLowerCase()));
+
   return (
     <SectionTable
-      titre="Régions"
-      items={items}
+      titre={`Régions (${itemsFiltres.length})`}
+      items={itemsFiltres}
       chargement={chargement}
       erreur={erreur}
+      filtres={<Input placeholder="Rechercher une région..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />}
       colonnes={[
         { label: "Code", rendu: (r) => r.code },
-        { label: "Nom", rendu: (r) => r.nom },
+        { label: "Nom", rendu: (r) => <IconeNiveau icone={MapIcon} accent="bg-primary" nom={r.nom} /> },
         { label: "Chef-lieu", rendu: (r) => r.chef_lieu ?? "—" },
       ]}
       actionsEnTete={
@@ -157,20 +204,24 @@ function SectionRegions() {
 function SectionPrefectures() {
   const { items, chargement, erreur, creer } = useRessource<Prefecture>("/territoire/prefectures/");
   const { items: regions } = useRessource<Region>("/territoire/regions/");
+  const [recherche, setRecherche] = useState("");
   const [nom, setNom] = useState("");
   const [code, setCode] = useState("");
   const [regionId, setRegionId] = useState("");
   const dialogue = useFormulaireDialogue<Record<string, unknown>>((payload) => creer(payload));
 
+  const itemsFiltres = items.filter((p) => p.nom.toLowerCase().includes(recherche.toLowerCase()));
+
   return (
     <SectionTable
-      titre="Préfectures"
-      items={items}
+      titre={`Préfectures (${itemsFiltres.length})`}
+      items={itemsFiltres}
       chargement={chargement}
       erreur={erreur}
+      filtres={<Input placeholder="Rechercher une préfecture..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />}
       colonnes={[
         { label: "Code", rendu: (p) => p.code },
-        { label: "Nom", rendu: (p) => p.nom },
+        { label: "Nom", rendu: (p) => <IconeNiveau icone={Building2} accent="bg-accent" nom={p.nom} /> },
         { label: "Région", rendu: (p) => p.region_nom },
       ]}
       actionsEnTete={
@@ -227,24 +278,45 @@ function SectionPrefectures() {
   );
 }
 
+const FILTRES_STATUT_TERRITOIRE = [
+  { valeur: "Tous" as const, label: "Tous" },
+  { valeur: "active" as const, label: "Active" },
+  { valeur: "en_attente" as const, label: "En attente de DSE" },
+  { valeur: "suspendue" as const, label: "Suspendue" },
+];
+
 function SectionSousPrefectures() {
   const { items, chargement, erreur, creer, mettreAJour } = useRessource<SousPrefecture>(
     "/territoire/sous-prefectures/"
   );
   const { items: prefectures } = useRessource<Prefecture>("/territoire/prefectures/");
+  const [recherche, setRecherche] = useState("");
+  const [filtreStatut, setFiltreStatut] = useState<(typeof FILTRES_STATUT_TERRITOIRE)[number]["valeur"]>("Tous");
   const [nom, setNom] = useState("");
   const [prefectureId, setPrefectureId] = useState("");
   const dialogue = useFormulaireDialogue<Record<string, unknown>>((payload) => creer(payload));
 
+  const itemsFiltres = items.filter(
+    (s) =>
+      s.nom.toLowerCase().includes(recherche.toLowerCase()) &&
+      (filtreStatut === "Tous" || s.statut === filtreStatut)
+  );
+
   return (
     <SectionTable
-      titre="Sous-préfectures"
-      items={items}
+      titre={`Sous-préfectures (${itemsFiltres.length})`}
+      items={itemsFiltres}
       chargement={chargement}
       erreur={erreur}
+      filtres={
+        <>
+          <Input placeholder="Rechercher une sous-préfecture..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />
+          <PastillesFiltre options={FILTRES_STATUT_TERRITOIRE} valeur={filtreStatut} onChange={setFiltreStatut} />
+        </>
+      }
       colonnes={[
         { label: "Code", rendu: (s) => s.code },
-        { label: "Nom", rendu: (s) => s.nom },
+        { label: "Nom", rendu: (s) => <IconeNiveau icone={Landmark} accent="bg-succes" nom={s.nom} /> },
         { label: "Préfecture", rendu: (s) => s.prefecture_nom },
         {
           label: "Statut",
@@ -309,26 +381,46 @@ function SectionSousPrefectures() {
   );
 }
 
+const FILTRES_TYPE_COMMUNE = [
+  { valeur: "Tous" as const, label: "Toutes" },
+  { valeur: "urbaine" as const, label: "Urbaine" },
+  { valeur: "rurale" as const, label: "Rurale" },
+];
+
 function SectionCommunes() {
   const { items, chargement, erreur, creer } = useRessource<Commune>("/territoire/communes/");
   const { items: regions } = useRessource<Region>("/territoire/regions/");
+  const [recherche, setRecherche] = useState("");
+  const [filtreType, setFiltreType] = useState<(typeof FILTRES_TYPE_COMMUNE)[number]["valeur"]>("Tous");
   const [nom, setNom] = useState("");
   const [code, setCode] = useState("");
   const [regionId, setRegionId] = useState("");
   const [typeCommune, setTypeCommune] = useState("urbaine");
   const dialogue = useFormulaireDialogue<Record<string, unknown>>((payload) => creer(payload));
 
+  const itemsFiltres = items.filter(
+    (c) =>
+      c.nom.toLowerCase().includes(recherche.toLowerCase()) &&
+      (filtreType === "Tous" || c.type_commune === filtreType)
+  );
+
   return (
     <SectionTable
-      titre="Communes"
-      items={items}
+      titre={`Communes (${itemsFiltres.length})`}
+      items={itemsFiltres}
       chargement={chargement}
       erreur={erreur}
+      filtres={
+        <>
+          <Input placeholder="Rechercher une commune..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />
+          <PastillesFiltre options={FILTRES_TYPE_COMMUNE} valeur={filtreType} onChange={setFiltreType} />
+        </>
+      }
       colonnes={[
         { label: "Code", rendu: (c) => c.code },
-        { label: "Nom", rendu: (c) => c.nom },
+        { label: "Nom", rendu: (c) => <IconeNiveau icone={MapPin} accent="bg-primary" nom={c.nom} /> },
         { label: "Région", rendu: (c) => c.region_nom },
-        { label: "Type", rendu: (c) => c.type_commune },
+        { label: "Type", rendu: (c) => (c.type_commune === "urbaine" ? "Urbaine" : "Rurale") },
       ]}
       actionsEnTete={
         <Dialog open={dialogue.ouvert} onOpenChange={dialogue.setOuvert}>
@@ -394,19 +486,33 @@ function SectionCommunes() {
 function SectionQuartiers() {
   const { items, chargement, erreur, creer, mettreAJour } = useRessource<Quartier>("/territoire/quartiers/");
   const { items: communes } = useRessource<Commune>("/territoire/communes/");
+  const [recherche, setRecherche] = useState("");
+  const [filtreStatut, setFiltreStatut] = useState<(typeof FILTRES_STATUT_TERRITOIRE)[number]["valeur"]>("Tous");
   const [nom, setNom] = useState("");
   const [communeId, setCommuneId] = useState("");
   const dialogue = useFormulaireDialogue<Record<string, unknown>>((payload) => creer(payload));
 
+  const itemsFiltres = items.filter(
+    (q) =>
+      q.nom.toLowerCase().includes(recherche.toLowerCase()) &&
+      (filtreStatut === "Tous" || q.statut === filtreStatut)
+  );
+
   return (
     <SectionTable
-      titre="Quartiers"
-      items={items}
+      titre={`Quartiers (${itemsFiltres.length})`}
+      items={itemsFiltres}
       chargement={chargement}
       erreur={erreur}
+      filtres={
+        <>
+          <Input placeholder="Rechercher un quartier..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />
+          <PastillesFiltre options={FILTRES_STATUT_TERRITOIRE} valeur={filtreStatut} onChange={setFiltreStatut} />
+        </>
+      }
       colonnes={[
         { label: "Code", rendu: (q) => q.code },
-        { label: "Nom", rendu: (q) => q.nom },
+        { label: "Nom", rendu: (q) => <IconeNiveau icone={Navigation} accent="bg-accent" nom={q.nom} /> },
         { label: "Commune", rendu: (q) => q.commune_nom },
         {
           label: "Statut",
