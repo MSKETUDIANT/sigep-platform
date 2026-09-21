@@ -134,10 +134,8 @@ function PastillesFiltre<T extends string>({
 
 function SectionRegions() {
   const [recherche, setRecherche] = useState("");
-  const { items, count, page, setPage, totalPages, chargement, erreur, creer } = useRessourcePaginee<Region>(
-    "/territoire/regions/",
-    { recherche }
-  );
+  const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer } =
+    useRessourcePaginee<Region>("/territoire/regions/", { recherche });
   const [nom, setNom] = useState("");
   const [code, setCode] = useState("");
   const [chefLieu, setChefLieu] = useState("");
@@ -152,6 +150,9 @@ function SectionRegions() {
       page={page}
       totalPages={totalPages}
       onPageChange={setPage}
+      pageSize={pageSize}
+      onPageSizeChange={setPageSize}
+      total={count}
       filtres={<Input placeholder="Rechercher une région..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />}
       colonnes={[
         { label: "Code", rendu: (r) => r.code },
@@ -207,10 +208,8 @@ function SectionRegions() {
 
 function SectionPrefectures() {
   const [recherche, setRecherche] = useState("");
-  const { items, count, page, setPage, totalPages, chargement, erreur, creer } = useRessourcePaginee<Prefecture>(
-    "/territoire/prefectures/",
-    { recherche }
-  );
+  const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer } =
+    useRessourcePaginee<Prefecture>("/territoire/prefectures/", { recherche });
   const { items: regions } = useRessource<Region>("/territoire/regions/");
   const [nom, setNom] = useState("");
   const [code, setCode] = useState("");
@@ -226,6 +225,9 @@ function SectionPrefectures() {
       page={page}
       totalPages={totalPages}
       onPageChange={setPage}
+      pageSize={pageSize}
+      onPageSizeChange={setPageSize}
+      total={count}
       filtres={<Input placeholder="Rechercher une préfecture..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />}
       colonnes={[
         { label: "Code", rendu: (p) => p.code },
@@ -296,7 +298,7 @@ const FILTRES_STATUT_TERRITOIRE = [
 function SectionSousPrefectures() {
   const [recherche, setRecherche] = useState("");
   const [filtreStatut, setFiltreStatut] = useState<(typeof FILTRES_STATUT_TERRITOIRE)[number]["valeur"]>("Tous");
-  const { items, count, page, setPage, totalPages, chargement, erreur, creer, mettreAJour } =
+  const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer, mettreAJour } =
     useRessourcePaginee<SousPrefecture>("/territoire/sous-prefectures/", {
       recherche,
       filtres: { statut: filtreStatut === "Tous" ? undefined : filtreStatut },
@@ -315,6 +317,9 @@ function SectionSousPrefectures() {
       page={page}
       totalPages={totalPages}
       onPageChange={setPage}
+      pageSize={pageSize}
+      onPageSizeChange={setPageSize}
+      total={count}
       filtres={
         <>
           <Input placeholder="Rechercher une sous-préfecture..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />
@@ -397,10 +402,11 @@ const FILTRES_TYPE_COMMUNE = [
 function SectionCommunes() {
   const [recherche, setRecherche] = useState("");
   const [filtreType, setFiltreType] = useState<(typeof FILTRES_TYPE_COMMUNE)[number]["valeur"]>("Tous");
-  const { items, count, page, setPage, totalPages, chargement, erreur, creer } = useRessourcePaginee<Commune>(
-    "/territoire/communes/",
-    { recherche, filtres: { type_commune: filtreType === "Tous" ? undefined : filtreType } }
-  );
+  const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer } =
+    useRessourcePaginee<Commune>("/territoire/communes/", {
+      recherche,
+      filtres: { type_commune: filtreType === "Tous" ? undefined : filtreType },
+    });
   const { items: regions } = useRessource<Region>("/territoire/regions/");
   const [nom, setNom] = useState("");
   const [code, setCode] = useState("");
@@ -417,6 +423,9 @@ function SectionCommunes() {
       page={page}
       totalPages={totalPages}
       onPageChange={setPage}
+      pageSize={pageSize}
+      onPageSizeChange={setPageSize}
+      total={count}
       filtres={
         <>
           <Input placeholder="Rechercher une commune..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />
@@ -493,7 +502,7 @@ function SectionCommunes() {
 function SectionQuartiers() {
   const [recherche, setRecherche] = useState("");
   const [filtreStatut, setFiltreStatut] = useState<(typeof FILTRES_STATUT_TERRITOIRE)[number]["valeur"]>("Tous");
-  const { items, count, page, setPage, totalPages, chargement, erreur, creer, mettreAJour } =
+  const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer, mettreAJour } =
     useRessourcePaginee<Quartier>("/territoire/quartiers/", {
       recherche,
       filtres: { statut: filtreStatut === "Tous" ? undefined : filtreStatut },
@@ -512,6 +521,9 @@ function SectionQuartiers() {
       page={page}
       totalPages={totalPages}
       onPageChange={setPage}
+      pageSize={pageSize}
+      onPageSizeChange={setPageSize}
+      total={count}
       filtres={
         <>
           <Input placeholder="Rechercher un quartier..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />

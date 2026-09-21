@@ -102,6 +102,7 @@ export function useRessourcePaginee<T>(endpoint: string, options: OptionsRessour
   const [items, setItems] = useState<T[]>([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(TAILLE_PAGE);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
   const [rechercheDebouncee, setRechercheDebouncee] = useState(options.recherche ?? "");
@@ -115,13 +116,13 @@ export function useRessourcePaginee<T>(endpoint: string, options: OptionsRessour
 
   useEffect(() => {
     setPage(1);
-  }, [rechercheDebouncee, cleFiltres]);
+  }, [rechercheDebouncee, cleFiltres, pageSize]);
 
   const recharger = useCallback(async () => {
     setChargement(true);
     setErreur(null);
     try {
-      const params = new URLSearchParams({ page: String(page) });
+      const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
       if (rechercheDebouncee) params.set("search", rechercheDebouncee);
       const filtres: Record<string, string | undefined> = JSON.parse(cleFiltres);
       for (const [cle, valeur] of Object.entries(filtres)) {
@@ -141,7 +142,7 @@ export function useRessourcePaginee<T>(endpoint: string, options: OptionsRessour
     } finally {
       setChargement(false);
     }
-  }, [endpoint, page, rechercheDebouncee, cleFiltres]);
+  }, [endpoint, page, pageSize, rechercheDebouncee, cleFiltres]);
 
   useEffect(() => {
     recharger();
@@ -177,13 +178,15 @@ export function useRessourcePaginee<T>(endpoint: string, options: OptionsRessour
     return donnees as T;
   }
 
-  const totalPages = Math.max(1, Math.ceil(count / TAILLE_PAGE));
+  const totalPages = Math.max(1, Math.ceil(count / pageSize));
 
   return {
     items,
     count,
     page,
     setPage,
+    pageSize,
+    setPageSize,
     totalPages,
     chargement,
     erreur,

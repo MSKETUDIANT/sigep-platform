@@ -27,9 +27,8 @@ type Ecole = { id: string; nom: string };
 type Classe = { id: string; libelle: string; cycle_libelle: string };
 
 export default function EnseignantsPage() {
-  const { items, count, page, setPage, totalPages, chargement, erreur, recharger } = useRessourcePaginee<Enseignant>(
-    "/comptes/enseignants/"
-  );
+  const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, recharger } =
+    useRessourcePaginee<Enseignant>("/comptes/enseignants/");
 
   return (
     <SectionTable
@@ -40,6 +39,9 @@ export default function EnseignantsPage() {
       page={page}
       totalPages={totalPages}
       onPageChange={setPage}
+      pageSize={pageSize}
+      onPageSizeChange={setPageSize}
+      total={count}
       colonnes={[
         {
           label: "Enseignant",

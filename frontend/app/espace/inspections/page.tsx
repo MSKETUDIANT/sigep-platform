@@ -45,7 +45,7 @@ function StatutBadge({ statut, label }: { statut: string; label: string }) {
 export default function InspectionsPage() {
   const utilisateur = useUtilisateurCourant();
   const [filtreStatut, setFiltreStatut] = useState<(typeof FILTRES_STATUT)[number]>("Tous");
-  const { items, count, page, setPage, totalPages, chargement, erreur, creer, action, recharger } =
+  const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer, action, recharger } =
     useRessourcePaginee<Inspection>("/etablissements/inspections/", {
       filtres: { statut: filtreStatut === "Tous" ? undefined : filtreStatut },
     });
@@ -64,6 +64,9 @@ export default function InspectionsPage() {
       page={page}
       totalPages={totalPages}
       onPageChange={setPage}
+      pageSize={pageSize}
+      onPageSizeChange={setPageSize}
+      total={count}
       filtres={
         <div className="flex flex-wrap gap-1.5">
           {FILTRES_STATUT.map((f) => (

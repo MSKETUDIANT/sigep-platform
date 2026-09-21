@@ -37,7 +37,7 @@ const LIENS = [
 
 export default function ElevesPage() {
   const [recherche, setRecherche] = useState("");
-  const { items, count, page, setPage, totalPages, chargement, erreur, creer, recharger } =
+  const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer, recharger } =
     useRessourcePaginee<Eleve>("/pedagogie/eleves/", { recherche });
   const { items: ecoles } = useRessource<Ecole>("/etablissements/ecoles/");
   const { items: classes } = useRessource<Classe>("/territoire/classes/");
@@ -59,6 +59,9 @@ export default function ElevesPage() {
       page={page}
       totalPages={totalPages}
       onPageChange={setPage}
+      pageSize={pageSize}
+      onPageSizeChange={setPageSize}
+      total={count}
       filtres={
         <Input
           placeholder="Rechercher un élève..."

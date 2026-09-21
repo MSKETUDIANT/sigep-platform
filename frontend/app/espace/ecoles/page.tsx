@@ -68,10 +68,11 @@ function EtatBadge({ etat, label }: { etat: string; label: string }) {
 export default function EcolesPage() {
   const [recherche, setRecherche] = useState("");
   const [filtreEtat, setFiltreEtat] = useState<(typeof FILTRES_ETAT)[number]["valeur"]>("Tous");
-  const { items, count, page, setPage, totalPages, chargement, erreur, creer } = useRessourcePaginee<Ecole>(
-    "/etablissements/ecoles/",
-    { recherche, filtres: { etat_general: filtreEtat === "Tous" ? undefined : filtreEtat } }
-  );
+  const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer } =
+    useRessourcePaginee<Ecole>("/etablissements/ecoles/", {
+      recherche,
+      filtres: { etat_general: filtreEtat === "Tous" ? undefined : filtreEtat },
+    });
   const { items: sousPrefectures } = useRessource<SousPrefecture>("/territoire/sous-prefectures/");
   const { items: quartiers } = useRessource<Quartier>("/territoire/quartiers/");
 
@@ -92,6 +93,9 @@ export default function EcolesPage() {
       page={page}
       totalPages={totalPages}
       onPageChange={setPage}
+      pageSize={pageSize}
+      onPageSizeChange={setPageSize}
+      total={count}
       filtres={
         <>
           <Input

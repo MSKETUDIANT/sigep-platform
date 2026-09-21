@@ -27,10 +27,10 @@ type Ecole = { id: string; nom: string };
 
 export default function EquipementsPage() {
   const [ecoleFiltre, setEcoleFiltre] = useState("Toutes");
-  const { items, count, page, setPage, totalPages, chargement, erreur, creer } = useRessourcePaginee<Equipement>(
-    "/etablissements/equipements/",
-    { filtres: { ecole: ecoleFiltre === "Toutes" ? undefined : ecoleFiltre } }
-  );
+  const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer } =
+    useRessourcePaginee<Equipement>("/etablissements/equipements/", {
+      filtres: { ecole: ecoleFiltre === "Toutes" ? undefined : ecoleFiltre },
+    });
   const { items: ecoles } = useRessource<Ecole>("/etablissements/ecoles/");
 
   const [ecoleId, setEcoleId] = useState("");
@@ -49,6 +49,9 @@ export default function EquipementsPage() {
       page={page}
       totalPages={totalPages}
       onPageChange={setPage}
+      pageSize={pageSize}
+      onPageSizeChange={setPageSize}
+      total={count}
       filtres={
         <SelectNatif value={ecoleFiltre} onChange={(e) => setEcoleFiltre(e.target.value)} className="max-w-xs">
           <option value="Toutes">Toutes les écoles</option>

@@ -81,10 +81,11 @@ function AvatarInitiales({ prenoms, nom }: { prenoms: string; nom: string }) {
 export default function ComptesPage() {
   const [recherche, setRecherche] = useState("");
   const [filtreStatut, setFiltreStatut] = useState<(typeof FILTRES_STATUT)[number]>("Tous");
-  const { items, count, page, setPage, totalPages, chargement, erreur, recharger } = useRessourcePaginee<Utilisateur>(
-    "/comptes/utilisateurs/",
-    { recherche, filtres: { statut: filtreStatut === "Tous" ? undefined : filtreStatut } }
-  );
+  const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, recharger } =
+    useRessourcePaginee<Utilisateur>("/comptes/utilisateurs/", {
+      recherche,
+      filtres: { statut: filtreStatut === "Tous" ? undefined : filtreStatut },
+    });
 
   return (
     <div className="space-y-4">
@@ -121,6 +122,9 @@ export default function ComptesPage() {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
+        pageSize={pageSize}
+        onPageSizeChange={setPageSize}
+        total={count}
         colonnes={[
           {
             label: "Utilisateur",
