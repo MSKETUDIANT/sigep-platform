@@ -18,6 +18,7 @@ import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
 import { apiFetch } from "@/lib/api";
 import { useRessource } from "@/lib/hooks/use-ressource";
+import { cn } from "@/lib/utils";
 
 type Utilisateur = {
   id: string;
@@ -66,19 +67,74 @@ function StatutBadge({ statut }: { statut: string }) {
   return <Badge variant={variante}>{LIBELLES_STATUT[statut] ?? statut}</Badge>;
 }
 
+const FILTRES_STATUT = ["Tous", "actif", "en_attente_activation", "suspendu", "revoque"] as const;
+
+function AvatarInitiales({ prenoms, nom }: { prenoms: string; nom: string }) {
+  const initiales = `${prenoms[0] ?? ""}${nom[0] ?? ""}`.toUpperCase();
+  return (
+    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
+      {initiales}
+    </div>
+  );
+}
+
 export default function ComptesPage() {
   const { items, chargement, erreur, recharger } = useRessource<Utilisateur>("/comptes/utilisateurs/");
+  const [recherche, setRecherche] = useState("");
+  const [filtreStatut, setFiltreStatut] = useState<(typeof FILTRES_STATUT)[number]>("Tous");
+
+  const itemsFiltres = items.filter((u) => {
+    const correspondStatut = filtreStatut === "Tous" || u.statut === filtreStatut;
+    const texte = `${u.identifiant} ${u.nom} ${u.prenoms}`.toLowerCase();
+    const correspondRecherche = texte.includes(recherche.toLowerCase());
+    return correspondStatut && correspondRecherche;
+  });
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <Input
+          placeholder="Rechercher un identifiant, un nom..."
+          value={recherche}
+          onChange={(e) => setRecherche(e.target.value)}
+          className="max-w-xs"
+        />
+        <div className="flex flex-wrap gap-1.5">
+          {FILTRES_STATUT.map((f) => (
+            <button
+              key={f}
+              onClick={() => setFiltreStatut(f)}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                filtreStatut === f
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-muted-foreground hover:bg-muted"
+              )}
+            >
+              {f === "Tous" ? "Tous" : LIBELLES_STATUT[f]}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <SectionTable
-        titre="Comptes utilisateurs"
-        items={items}
+        titre={`Comptes utilisateurs (${itemsFiltres.length})`}
+        items={itemsFiltres}
         chargement={chargement}
         erreur={erreur}
         colonnes={[
-          { label: "Identifiant", rendu: (u) => u.identifiant },
-          { label: "Nom", rendu: (u) => `${u.prenoms} ${u.nom}` },
+          {
+            label: "Utilisateur",
+            rendu: (u) => (
+              <div className="flex items-center gap-2">
+                <AvatarInitiales prenoms={u.prenoms} nom={u.nom} />
+                <div>
+                  <p className="font-medium">{u.prenoms} {u.nom}</p>
+                  <p className="text-xs text-muted-foreground">{u.identifiant}</p>
+                </div>
+              </div>
+            ),
+          },
           { label: "Profil", rendu: (u) => u.profil_display },
           { label: "Statut", rendu: (u) => <StatutBadge statut={u.statut} /> },
           {
