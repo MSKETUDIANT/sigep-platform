@@ -90,7 +90,7 @@ export default function LoginPage() {
           </div>
           <div className="flex flex-col gap-3">
             <h1 className="text-3xl font-bold leading-tight">
-              La gestion de l&apos;enseignement préuniversitaire, pour tout le pays.
+              La gestion de l&apos;enseignement préuniversitaire.
             </h1>
             <p className="max-w-md text-sm leading-relaxed text-primary-foreground/70">
               Une plateforme unique reliant le Ministère, les directions régionales, préfectorales et
