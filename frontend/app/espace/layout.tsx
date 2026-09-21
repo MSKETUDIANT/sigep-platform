@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, LogOut, Map, Settings, Users } from "lucide-react";
+import { LayoutDashboard, LogOut, Map, School, Settings, Users } from "lucide-react";
 
 import { apiFetch, clearSession, getToken } from "@/lib/api";
 import { LIBELLES_PROFIL, UtilisateurContext, type Utilisateur } from "@/lib/contexte-utilisateur";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { href: "/espace", label: "Tableau de bord", icone: LayoutDashboard },
   { href: "/espace/territoire", label: "Territoire", icone: Map },
+  { href: "/espace/ecoles", label: "Écoles", icone: School },
   { href: "/espace/comptes", label: "Comptes", icone: Users },
   { href: "/espace/systeme", label: "Système", icone: Settings },
 ];

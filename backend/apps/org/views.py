@@ -1,6 +1,6 @@
 from django.db import IntegrityError, transaction
 from django.utils import timezone
-from rest_framework import status, viewsets
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -8,8 +8,10 @@ from rest_framework.response import Response
 from apps.aud.services import consigner
 from apps.core.permissions import EstSuperAdmin
 
-from .models import AffectationResponsable, StatutAffectation
-from .serializers import AffectationResponsableSerializer, ReaffectationSerializer
+from .models import AffectationResponsable, Ecole, StatutAffectation
+from .serializers import AffectationResponsableSerializer, EcoleSerializer, ReaffectationSerializer
+
+PROFILS_VUE_NATIONALE = {"super_admin", "dge", "ministre", "cabinet"}
 
 
 class AffectationResponsableViewSet(viewsets.ModelViewSet):
@@ -72,3 +74,43 @@ class AffectationResponsableViewSet(viewsets.ModelViewSet):
             detail=f"{ancienne.utilisateur.identifiant} réaffecté (depuis affectation {ancienne.id})",
         )
         return Response(AffectationResponsableSerializer(nouvelle).data, status=status.HTTP_201_CREATED)
+
+
+class EcoleViewSet(viewsets.ModelViewSet):
+    """US-3.1 à US-3.5. Lecture bornée au périmètre du profil connecté (US-3.4) ;
+    création/modification réservées au Super Admin pour l'instant — à ouvrir
+    aux DSE/DCE/DPE (proposition d'école) quand ce flux sera spécifié."""
+
+    serializer_class = EcoleSerializer
+    search_fields = ["nom", "code_ecole"]
+    filterset_fields = ["type_ecole", "etat_general", "region", "prefecture", "commune", "sous_prefecture", "quartier"]
+
+    def get_permissions(self):
+        if self.action in ("create", "update", "partial_update", "destroy"):
+            return [EstSuperAdmin()]
+        return [permissions.IsAuthenticated()]
+
+    def get_queryset(self):
+        qs = Ecole.objects.select_related(
+            "sous_prefecture", "prefecture", "commune", "quartier", "region", "directeur"
+        ).all()
+        user = self.request.user
+        if user.profil in PROFILS_VUE_NATIONALE:
+            return qs
+        if user.profil == "directeur_ecole":
+            return qs.filter(directeur=user)
+
+        affectation = AffectationResponsable.objects.filter(
+            utilisateur=user, statut="actif", date_fin__isnull=True
+        ).first()
+        if not affectation:
+            return qs.none()
+        if user.profil == "dse":
+            return qs.filter(sous_prefecture=affectation.sous_prefecture)
+        if user.profil == "dce":
+            return qs.filter(commune=affectation.commune)
+        if user.profil == "dpe":
+            return qs.filter(prefecture=affectation.prefecture)
+        if user.profil == "ir":
+            return qs.filter(region=affectation.region)
+        return qs.none()
