@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import Utilisateur
+from .models import Enseignant, InterventionEnseignant, Utilisateur
 
 
 @admin.register(Utilisateur)
@@ -31,3 +31,20 @@ class UtilisateurAdmin(UserAdmin):
         ),
     )
     readonly_fields = ("cree_le", "modifie_le", "last_login")
+
+
+@admin.register(Enseignant)
+class EnseignantAdmin(admin.ModelAdmin):
+    list_display = ("matricule", "utilisateur", "matiere_principale", "statut_enseignant")
+    list_filter = ("statut_enseignant",)
+    search_fields = ("matricule", "utilisateur__nom", "utilisateur__prenoms")
+    autocomplete_fields = ("utilisateur",)
+    readonly_fields = ("matricule", "cree_le", "modifie_le")
+
+
+@admin.register(InterventionEnseignant)
+class InterventionEnseignantAdmin(admin.ModelAdmin):
+    list_display = ("enseignant", "ecole", "classe", "matiere", "volume_horaire_hebdo", "annee_academique", "actif")
+    list_filter = ("actif", "annee_academique")
+    search_fields = ("enseignant__matricule", "matiere")
+    autocomplete_fields = ("enseignant", "ecole", "classe")

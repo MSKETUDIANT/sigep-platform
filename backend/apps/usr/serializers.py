@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.exceptions import AuthenticationFailed as JWTAuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from .models import StatutCompte, Utilisateur
+from .models import Enseignant, InterventionEnseignant, StatutCompte, Utilisateur
 from .utils import generer_mot_de_passe_provisoire
 
 
@@ -92,3 +92,62 @@ class UtilisateurCreateSerializer(serializers.ModelSerializer):
         # Exposé une seule fois par la vue (creation response) — jamais stocké en clair.
         utilisateur.mot_de_passe_genere = mot_de_passe
         return utilisateur
+
+
+class EnseignantSerializer(serializers.ModelSerializer):
+    """US-4.1 : fiche enseignant. La création crée aussi le compte Utilisateur
+    sous-jacent (mot de passe provisoire généré, comme US-2.2)."""
+
+    nom = serializers.CharField(write_only=True, required=False)
+    prenoms = serializers.CharField(write_only=True, required=False)
+    telephone = serializers.CharField(write_only=True, required=False)
+    identifiant = serializers.CharField(write_only=True, required=False)
+    email = serializers.EmailField(write_only=True, required=False, allow_null=True)
+
+    utilisateur_nom = serializers.CharField(source="utilisateur.nom_complet", read_only=True)
+    identifiant_lecture = serializers.CharField(source="utilisateur.identifiant", read_only=True)
+    statut_enseignant_display = serializers.CharField(source="get_statut_enseignant_display", read_only=True)
+
+    class Meta:
+        model = Enseignant
+        fields = [
+            "id", "utilisateur", "utilisateur_nom", "identifiant_lecture", "matricule",
+            "matiere_principale", "statut_enseignant", "statut_enseignant_display",
+            "cree_le", "modifie_le",
+            "nom", "prenoms", "telephone", "identifiant", "email",
+        ]
+        read_only_fields = ["id", "utilisateur", "matricule", "cree_le", "modifie_le"]
+
+    def create(self, validated_data):
+        donnees_compte = {
+            "identifiant": validated_data.pop("identifiant"),
+            "telephone": validated_data.pop("telephone"),
+            "nom": validated_data.pop("nom"),
+            "prenoms": validated_data.pop("prenoms"),
+            "email": validated_data.pop("email", None),
+        }
+        mot_de_passe = generer_mot_de_passe_provisoire()
+        utilisateur = Utilisateur.objects.create_user(
+            profil="enseignant", password=mot_de_passe, **donnees_compte
+        )
+        utilisateur.statut = StatutCompte.EN_ATTENTE_ACTIVATION
+        utilisateur.mot_de_passe_provisoire = True
+        utilisateur.save(update_fields=["statut", "mot_de_passe_provisoire"])
+
+        enseignant = Enseignant.objects.create(utilisateur=utilisateur, **validated_data)
+        enseignant.mot_de_passe_genere = mot_de_passe
+        return enseignant
+
+
+class InterventionEnseignantSerializer(serializers.ModelSerializer):
+    enseignant_nom = serializers.CharField(source="enseignant.utilisateur.nom_complet", read_only=True)
+    ecole_nom = serializers.CharField(source="ecole.nom", read_only=True)
+    classe_libelle = serializers.CharField(source="classe.libelle", read_only=True)
+
+    class Meta:
+        model = InterventionEnseignant
+        fields = [
+            "id", "enseignant", "enseignant_nom", "ecole", "ecole_nom", "classe", "classe_libelle",
+            "matiere", "volume_horaire_hebdo", "annee_academique", "actif", "cree_le", "modifie_le",
+        ]
+        read_only_fields = ["id", "cree_le", "modifie_le"]

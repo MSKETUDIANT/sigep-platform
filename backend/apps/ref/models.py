@@ -213,3 +213,56 @@ class Quartier(TimestampedModel):
         if not self.code:
             self.code = self._generer_code()
         super().save(*args, **kwargs)
+
+
+class CycleCode(models.TextChoices):
+    PRIMAIRE = "primaire", "Primaire"
+    COLLEGE = "college", "Collège"
+    LYCEE = "lycee", "Lycée"
+
+
+class TypeExamen(models.TextChoices):
+    CEP = "CEP", "Certificat d'Études Primaires"
+    BEPC = "BEPC", "Brevet d'Études du Premier Cycle"
+    BAC = "BAC", "Baccalauréat"
+
+
+class Cycle(models.Model):
+    """§14.1 : Primaire (6 ans, CEP), Collège (4 ans, BEPC), Lycée (3 ans, BAC) — données fixes, seedées."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    code = models.CharField(max_length=20, choices=CycleCode.choices, unique=True)
+    libelle = models.CharField(max_length=60)
+    duree_annees = models.SmallIntegerField()
+    ordre = models.SmallIntegerField()
+    examen_fin = models.CharField(max_length=10, choices=TypeExamen.choices, null=True, blank=True)
+
+    class Meta:
+        db_table = '"ref"."cycle"'
+        verbose_name = "Cycle"
+        verbose_name_plural = "Cycles"
+        ordering = ["ordre"]
+
+    def __str__(self):
+        return self.libelle
+
+
+class Classe(models.Model):
+    """§14.1 : CP1..CM2, 7e..10e, 11e..Terminale — données fixes, seedées."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    cycle = models.ForeignKey(Cycle, on_delete=models.PROTECT, related_name="classes")
+    code = models.CharField(max_length=10, unique=True)
+    libelle = models.CharField(max_length=60)
+    niveau = models.SmallIntegerField()
+    est_classe_fin = models.BooleanField(default=False)  # CM2, 10e, Terminale
+    ordre = models.SmallIntegerField()
+
+    class Meta:
+        db_table = '"ref"."classe"'
+        verbose_name = "Classe"
+        verbose_name_plural = "Classes"
+        ordering = ["ordre"]
+
+    def __str__(self):
+        return self.libelle

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Commune, Prefecture, Quartier, Region, SousPrefecture
+from .models import Classe, Commune, Cycle, Prefecture, Quartier, Region, SousPrefecture
 
 
 @admin.register(Region)
@@ -42,3 +42,15 @@ class QuartierAdmin(admin.ModelAdmin):
     list_filter = ("statut", "commune")
     autocomplete_fields = ("commune", "cree_par")
     readonly_fields = ("code",)
+
+
+@admin.register(Cycle)
+class CycleAdmin(admin.ModelAdmin):
+    list_display = ("code", "libelle", "duree_annees", "examen_fin", "ordre")
+
+
+@admin.register(Classe)
+class ClasseAdmin(admin.ModelAdmin):
+    list_display = ("code", "libelle", "cycle", "niveau", "est_classe_fin", "ordre")
+    list_filter = ("cycle",)
+    search_fields = ("code", "libelle")

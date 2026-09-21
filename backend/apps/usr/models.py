@@ -116,3 +116,74 @@ class Utilisateur(AbstractBaseUser, PermissionsMixin):
     @property
     def nom_complet(self):
         return f"{self.prenoms} {self.nom}"
+
+
+class StatutEnseignant(models.TextChoices):
+    TITULAIRE = "titulaire", "Titulaire"
+    CONTRACTUEL = "contractuel", "Contractuel"
+    STAGIAIRE = "stagiaire", "Stagiaire"
+    VACATAIRE = "vacataire", "Vacataire"
+    RETRAITE = "retraite", "Retraité"
+
+
+class Enseignant(models.Model):
+    """US-4.1 : fiche enseignant, extension de Utilisateur (profil=enseignant)
+    avec les champs propres au métier (§6.3, §7.1 du dossier fonctionnel)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    utilisateur = models.OneToOneField(Utilisateur, on_delete=models.CASCADE, related_name="fiche_enseignant")
+    matricule = models.CharField(max_length=20, unique=True, blank=True)
+    matiere_principale = models.CharField(max_length=100, blank=True)
+    statut_enseignant = models.CharField(
+        max_length=20, choices=StatutEnseignant.choices, default=StatutEnseignant.TITULAIRE
+    )
+    cree_le = models.DateTimeField(auto_now_add=True)
+    modifie_le = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = '"usr"."enseignant"'
+        verbose_name = "Enseignant"
+        verbose_name_plural = "Enseignants"
+        ordering = ["utilisateur__nom"]
+
+    def __str__(self):
+        return f"{self.matricule} — {self.utilisateur.nom_complet}"
+
+    def save(self, *args, **kwargs):
+        if not self.matricule:
+            n = Enseignant.objects.count() + 1
+            self.matricule = f"ENS-{n:03d}"
+        super().save(*args, **kwargs)
+
+
+class InterventionEnseignant(models.Model):
+    """US-4.1/US-4.2/US-4.6 : rattachement direct d'un enseignant à une école et
+    une classe, avec matière et volume horaire (§7.1, §11.4). Version simple,
+    hors circuit de validation à 4 niveaux (celui-ci concerne les MUTATIONS
+    formelles entre écoles — EPIC 10, Sprint 7-8)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    enseignant = models.ForeignKey(Enseignant, on_delete=models.CASCADE, related_name="interventions")
+    ecole = models.ForeignKey("org.Ecole", on_delete=models.PROTECT, related_name="interventions_enseignants")
+    classe = models.ForeignKey("ref.Classe", on_delete=models.PROTECT, related_name="interventions_enseignants")
+    matiere = models.CharField(max_length=100)
+    volume_horaire_hebdo = models.DecimalField(max_digits=4, decimal_places=1, default=0)
+    annee_academique = models.CharField(max_length=9, default="2026-2027")
+    actif = models.BooleanField(default=True)
+    cree_le = models.DateTimeField(auto_now_add=True)
+    modifie_le = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = '"usr"."intervention_enseignant"'
+        verbose_name = "Intervention d'un enseignant"
+        verbose_name_plural = "Interventions des enseignants"
+        ordering = ["-cree_le"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["enseignant", "ecole", "classe", "matiere", "annee_academique"],
+                name="uq_intervention_enseignant",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.enseignant} — {self.ecole} — {self.classe}"

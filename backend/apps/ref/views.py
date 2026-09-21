@@ -1,10 +1,12 @@
-from rest_framework import viewsets
+from rest_framework import permissions, viewsets
 
 from apps.core.permissions import LectureAuthentifieEcritureSuperAdmin
 
-from .models import Commune, Prefecture, Quartier, Region, SousPrefecture
+from .models import Classe, Commune, Cycle, Prefecture, Quartier, Region, SousPrefecture
 from .serializers import (
+    ClasseSerializer,
     CommuneSerializer,
+    CycleSerializer,
     PrefectureSerializer,
     QuartierSerializer,
     RegionSerializer,
@@ -59,3 +61,18 @@ class QuartierViewSet(viewsets.ModelViewSet):
     search_fields = ["nom", "code"]
     filterset_fields = ["statut", "commune"]
     ordering_fields = ["nom", "code"]
+
+
+class CycleViewSet(viewsets.ReadOnlyModelViewSet):
+    """Référentiel fixe (§14.1) — pas de création/modification via l'API."""
+
+    queryset = Cycle.objects.all()
+    serializer_class = CycleSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class ClasseViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Classe.objects.select_related("cycle").all()
+    serializer_class = ClasseSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ["cycle"]

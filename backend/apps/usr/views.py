@@ -4,10 +4,16 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from apps.aud.services import consigner
-from apps.core.permissions import EstSuperAdmin
+from apps.core.permissions import EstSuperAdmin, LectureAuthentifieEcritureSuperAdmin
 
-from .models import StatutCompte, Utilisateur
-from .serializers import ConnexionSerializer, UtilisateurCreateSerializer, UtilisateurSerializer
+from .models import Enseignant, InterventionEnseignant, StatutCompte, Utilisateur
+from .serializers import (
+    ConnexionSerializer,
+    EnseignantSerializer,
+    InterventionEnseignantSerializer,
+    UtilisateurCreateSerializer,
+    UtilisateurSerializer,
+)
 from .utils import generer_mot_de_passe_provisoire
 
 
@@ -91,3 +97,42 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
             detail=f"Mot de passe réinitialisé pour {utilisateur.identifiant}",
         )
         return Response({"mot_de_passe_provisoire_genere": nouveau})
+
+
+class EnseignantViewSet(viewsets.ModelViewSet):
+    """US-4.1. Écriture réservée au Super Admin pour l'instant (même logique
+    que org.Ecole) — ouverture au Directeur d'École à affiner plus tard."""
+
+    queryset = Enseignant.objects.select_related("utilisateur").all()
+    permission_classes = [LectureAuthentifieEcritureSuperAdmin]
+    filterset_fields = ["statut_enseignant"]
+    search_fields = ["matricule", "utilisateur__nom", "utilisateur__prenoms", "matiere_principale"]
+
+    def get_serializer_class(self):
+        return EnseignantSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        enseignant = serializer.save()
+        consigner(
+            acteur=request.user,
+            action="creation_enseignant",
+            cible_type="usr.Enseignant",
+            cible_id=enseignant.id,
+            detail=f"{enseignant.matricule} — {enseignant.utilisateur.nom_complet}",
+        )
+        reponse = EnseignantSerializer(enseignant).data
+        reponse["mot_de_passe_provisoire_genere"] = enseignant.mot_de_passe_genere
+        return Response(reponse, status=status.HTTP_201_CREATED)
+
+
+class InterventionEnseignantViewSet(viewsets.ModelViewSet):
+    """US-4.1/US-4.2 : rattachement d'un enseignant à une école/classe."""
+
+    queryset = InterventionEnseignant.objects.select_related(
+        "enseignant__utilisateur", "ecole", "classe"
+    ).all()
+    serializer_class = InterventionEnseignantSerializer
+    permission_classes = [LectureAuthentifieEcritureSuperAdmin]
+    filterset_fields = ["enseignant", "ecole", "classe", "actif", "annee_academique"]

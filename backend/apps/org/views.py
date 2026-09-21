@@ -8,10 +8,9 @@ from rest_framework.response import Response
 from apps.aud.services import consigner
 from apps.core.permissions import EstSuperAdmin
 
-from .models import AffectationResponsable, Ecole, StatutAffectation
+from .models import AffectationResponsable, StatutAffectation
 from .serializers import AffectationResponsableSerializer, EcoleSerializer, ReaffectationSerializer
-
-PROFILS_VUE_NATIONALE = {"super_admin", "dge", "ministre", "cabinet"}
+from .services import ecoles_visibles
 
 
 class AffectationResponsableViewSet(viewsets.ModelViewSet):
@@ -91,26 +90,6 @@ class EcoleViewSet(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
-        qs = Ecole.objects.select_related(
+        return ecoles_visibles(self.request.user).select_related(
             "sous_prefecture", "prefecture", "commune", "quartier", "region", "directeur"
-        ).all()
-        user = self.request.user
-        if user.profil in PROFILS_VUE_NATIONALE:
-            return qs
-        if user.profil == "directeur_ecole":
-            return qs.filter(directeur=user)
-
-        affectation = AffectationResponsable.objects.filter(
-            utilisateur=user, statut="actif", date_fin__isnull=True
-        ).first()
-        if not affectation:
-            return qs.none()
-        if user.profil == "dse":
-            return qs.filter(sous_prefecture=affectation.sous_prefecture)
-        if user.profil == "dce":
-            return qs.filter(commune=affectation.commune)
-        if user.profil == "dpe":
-            return qs.filter(prefecture=affectation.prefecture)
-        if user.profil == "ir":
-            return qs.filter(region=affectation.region)
-        return qs.none()
+        )

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Commune, Prefecture, Quartier, Region, SousPrefecture
+from .models import Classe, Commune, Cycle, Prefecture, Quartier, Region, SousPrefecture
 
 
 class RegionSerializer(serializers.ModelSerializer):
@@ -42,3 +42,17 @@ class QuartierSerializer(serializers.ModelSerializer):
         model = Quartier
         fields = "__all__"
         read_only_fields = ("code",)
+
+
+class CycleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cycle
+        fields = "__all__"
+
+
+class ClasseSerializer(serializers.ModelSerializer):
+    cycle_libelle = serializers.CharField(source="cycle.libelle", read_only=True)
+
+    class Meta:
+        model = Classe
+        fields = "__all__"
