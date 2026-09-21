@@ -1,0 +1,14 @@
+{
+  "name": "SIGEP - Système Intégré de Gestion de l'Enseignement Préuniversitaire",
+  "short_name": "SIGEP",
+  "description": "Plateforme nationale de gestion de l'enseignement préuniversitaire - République de Guinée",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d3b2e",
+  "theme_color": "#0d3b2e",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

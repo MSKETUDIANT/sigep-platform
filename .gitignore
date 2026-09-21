@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+venv/
+.venv/
+backend/staticfiles/
+backend/media/
+
+# Django
+*.sqlite3
+backend/.env
+
+# Node / Next.js
+node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env
+frontend/public/sw.js
+frontend/public/workbox-*.js
+frontend/next-env.d.ts
+
+# Docker
+*.pid
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
