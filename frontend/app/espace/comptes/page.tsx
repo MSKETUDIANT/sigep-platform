@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { InputTelephone, formaterTelephoneGuinee } from "@/components/ui/input-telephone";
 import { Label } from "@/components/ui/label";
 import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
@@ -234,7 +235,7 @@ function DialogueCreerCompte({ onCree }: { onCree: () => void }) {
     try {
       const reponse = await apiFetch("/comptes/utilisateurs/", {
         method: "POST",
-        body: JSON.stringify({ identifiant, telephone, profil, nom, prenoms }),
+        body: JSON.stringify({ identifiant, telephone: formaterTelephoneGuinee(telephone), profil, nom, prenoms }),
       });
       const donnees = await reponse.json();
       if (!reponse.ok) throw new Error(JSON.stringify(donnees));
@@ -283,7 +284,7 @@ function DialogueCreerCompte({ onCree }: { onCree: () => void }) {
             </div>
             <div>
               <Label htmlFor="cpt-telephone">Téléphone</Label>
-              <Input id="cpt-telephone" value={telephone} onChange={(e) => setTelephone(e.target.value)} required />
+              <InputTelephone id="cpt-telephone" value={telephone} onChange={setTelephone} required />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

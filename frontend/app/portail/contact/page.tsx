@@ -6,6 +6,7 @@ import { CheckCircle2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { InputTelephone, formaterTelephoneGuinee } from "@/components/ui/input-telephone";
 import { Label } from "@/components/ui/label";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -50,7 +51,7 @@ export default function ContactPortailPage() {
           ecole: ecoleId || null,
           nom,
           email,
-          telephone,
+          telephone: formaterTelephoneGuinee(telephone),
           sujet,
           message,
         }),
@@ -139,7 +140,7 @@ export default function ContactPortailPage() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="ctc-telephone">Téléphone</Label>
-              <Input id="ctc-telephone" value={telephone} onChange={(e) => setTelephone(e.target.value)} />
+              <InputTelephone id="ctc-telephone" value={telephone} onChange={setTelephone} />
             </div>
           </div>
           <p className="-mt-2 text-xs text-muted-foreground">Indiquez au moins l&apos;un des deux, pour qu&apos;on puisse vous répondre.</p>

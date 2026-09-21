@@ -6,6 +6,7 @@ import { CheckCircle2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { InputTelephone, formaterTelephoneGuinee } from "@/components/ui/input-telephone";
 import { Label } from "@/components/ui/label";
 import { SelectNatif } from "@/components/ui/select-natif";
 
@@ -59,7 +60,7 @@ export default function SignalerPortailPage() {
           categorie,
           description,
           nom_declarant: nomDeclarant,
-          telephone_declarant: telephoneDeclarant,
+          telephone_declarant: formaterTelephoneGuinee(telephoneDeclarant),
         }),
       });
       const donnees = await reponse.json();
@@ -166,12 +167,7 @@ export default function SignalerPortailPage() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="sig-telephone">Votre téléphone</Label>
-              <Input
-                id="sig-telephone"
-                value={telephoneDeclarant}
-                onChange={(e) => setTelephoneDeclarant(e.target.value)}
-                required
-              />
+              <InputTelephone id="sig-telephone" value={telephoneDeclarant} onChange={setTelephoneDeclarant} required />
             </div>
           </div>
 

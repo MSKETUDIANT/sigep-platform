@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { InputTelephone, formaterTelephoneGuinee } from "@/components/ui/input-telephone";
 import { Label } from "@/components/ui/label";
 import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
@@ -98,7 +99,13 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
     try {
       const reponse = await apiFetch("/comptes/enseignants/", {
         method: "POST",
-        body: JSON.stringify({ identifiant, telephone, nom, prenoms, matiere_principale: matiere }),
+        body: JSON.stringify({
+          identifiant,
+          telephone: formaterTelephoneGuinee(telephone),
+          nom,
+          prenoms,
+          matiere_principale: matiere,
+        }),
       });
       const donnees = await reponse.json();
       if (!reponse.ok) throw new Error(JSON.stringify(donnees));
@@ -139,7 +146,7 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
             </div>
             <div>
               <Label htmlFor="ens-telephone">Téléphone</Label>
-              <Input id="ens-telephone" value={telephone} onChange={(e) => setTelephone(e.target.value)} required />
+              <InputTelephone id="ens-telephone" value={telephone} onChange={setTelephone} required />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

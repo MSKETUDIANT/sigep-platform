@@ -6,6 +6,7 @@ import { Plus, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { InputTelephone, formaterTelephoneGuinee } from "@/components/ui/input-telephone";
 import { Label } from "@/components/ui/label";
 import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
@@ -197,7 +198,13 @@ function DialogueFiliation({ eleve, onChange }: { eleve: Eleve; onChange: () => 
     try {
       const reponse = await apiFetch("/pedagogie/filiations/", {
         method: "POST",
-        body: JSON.stringify({ eleve: eleve.id, lien, nom_complet: nomComplet, telephone, urgence }),
+        body: JSON.stringify({
+          eleve: eleve.id,
+          lien,
+          nom_complet: nomComplet,
+          telephone: formaterTelephoneGuinee(telephone),
+          urgence,
+        }),
       });
       if (!reponse.ok) throw new Error(JSON.stringify(await reponse.json()));
       setNomComplet("");
@@ -255,7 +262,7 @@ function DialogueFiliation({ eleve, onChange }: { eleve: Eleve; onChange: () => 
           </div>
           <div>
             <Label htmlFor="fil-telephone">Téléphone</Label>
-            <Input id="fil-telephone" value={telephone} onChange={(e) => setTelephone(e.target.value)} />
+            <InputTelephone id="fil-telephone" value={telephone} onChange={setTelephone} />
           </div>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={urgence} onChange={(e) => setUrgence(e.target.checked)} />
