@@ -51,9 +51,18 @@ const PROFILS_CREABLES = [
 
 const PROFILS_AVEC_PERIMETRE = ["dse", "dce", "dpe", "ir"];
 
-function StatutBadge({ statut }: { statut: string; label?: string }) {
-  const variante = statut === "actif" ? "default" : statut === "revoque" ? "destructive" : "accent";
-  return <Badge variant={variante}>{statut}</Badge>;
+const LIBELLES_STATUT: Record<string, string> = {
+  actif: "Actif",
+  en_attente_activation: "En attente d'activation",
+  suspendu: "Suspendu",
+  revoque: "Révoqué",
+};
+
+function StatutBadge({ statut }: { statut: string }) {
+  // Légende officielle (§3 du dossier fonctionnel) : vert = conforme/actif,
+  // orange = à surveiller, rouge = critique/bloqué.
+  const variante = statut === "actif" ? "succes" : statut === "revoque" ? "destructive" : "accent";
+  return <Badge variant={variante}>{LIBELLES_STATUT[statut] ?? statut}</Badge>;
 }
 
 export default function ComptesPage() {

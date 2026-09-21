@@ -59,9 +59,17 @@ export default function TerritoirePage() {
   );
 }
 
+const LIBELLES_STATUT: Record<string, string> = {
+  active: "Active",
+  en_attente: "En attente de DSE",
+  suspendue: "Suspendue",
+};
+
 function StatutBadge({ statut }: { statut: string }) {
-  const variante = statut === "active" || statut === "actif" ? "default" : statut === "suspendue" ? "destructive" : "accent";
-  return <Badge variant={variante}>{statut}</Badge>;
+  // Légende officielle (§3 du dossier fonctionnel) : vert = conforme/actif,
+  // orange = à surveiller, rouge = critique/bloqué.
+  const variante = statut === "active" ? "succes" : statut === "suspendue" ? "destructive" : "accent";
+  return <Badge variant={variante}>{LIBELLES_STATUT[statut] ?? statut}</Badge>;
 }
 
 function SectionRegions() {

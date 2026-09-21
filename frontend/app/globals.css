@@ -19,6 +19,11 @@
     --accent: 38 92% 50%; /* or, accents et badges "à suivre" */
     --accent-foreground: 30 40% 12%;
 
+    /* Légende officielle du dossier fonctionnel (§3) : CONFORME/ACTIF = vert,
+       ÉLEVÉE/À SUIVRE = orange, CRITIQUE/SUSPENDU/REVOQUÉ = rouge. */
+    --succes: 152 55% 32%;
+    --succes-foreground: 0 0% 100%;
+
     --muted: 160 15% 94%;
     --muted-foreground: 160 10% 40%;
 
