@@ -73,6 +73,7 @@ export default function EnseignantsPage() {
 function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
   const [ouvert, setOuvert] = useState(false);
   const [identifiant, setIdentifiant] = useState("");
+  const [email, setEmail] = useState("");
   const [telephone, setTelephone] = useState("");
   const [nom, setNom] = useState("");
   const [prenoms, setPrenoms] = useState("");
@@ -84,6 +85,7 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
   function fermer() {
     setOuvert(false);
     setIdentifiant("");
+    setEmail("");
     setTelephone("");
     setNom("");
     setPrenoms("");
@@ -101,6 +103,7 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
         method: "POST",
         body: JSON.stringify({
           identifiant,
+          email: email || undefined,
           telephone: formaterTelephoneGuinee(telephone),
           nom,
           prenoms,
@@ -143,6 +146,20 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
             <div>
               <Label htmlFor="ens-identifiant">Identifiant</Label>
               <Input id="ens-identifiant" value={identifiant} onChange={(e) => setIdentifiant(e.target.value)} required />
+            </div>
+            <div>
+              <Label htmlFor="ens-email">Email</Label>
+              <Input
+                id="ens-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="prenom.nom@education.gov.gn"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Nécessaire pour que l&apos;enseignant·e puisse activer son compte lui-même/elle-même (code
+                envoyé par email).
+              </p>
             </div>
             <div>
               <Label htmlFor="ens-telephone">Téléphone</Label>

@@ -209,6 +209,7 @@ function ActionsUtilisateur({ utilisateur, onChange }: { utilisateur: Utilisateu
 function DialogueCreerCompte({ onCree }: { onCree: () => void }) {
   const [ouvert, setOuvert] = useState(false);
   const [identifiant, setIdentifiant] = useState("");
+  const [email, setEmail] = useState("");
   const [telephone, setTelephone] = useState("");
   const [nom, setNom] = useState("");
   const [prenoms, setPrenoms] = useState("");
@@ -220,6 +221,7 @@ function DialogueCreerCompte({ onCree }: { onCree: () => void }) {
   function fermer() {
     setOuvert(false);
     setIdentifiant("");
+    setEmail("");
     setTelephone("");
     setNom("");
     setPrenoms("");
@@ -235,7 +237,14 @@ function DialogueCreerCompte({ onCree }: { onCree: () => void }) {
     try {
       const reponse = await apiFetch("/comptes/utilisateurs/", {
         method: "POST",
-        body: JSON.stringify({ identifiant, telephone: formaterTelephoneGuinee(telephone), profil, nom, prenoms }),
+        body: JSON.stringify({
+          identifiant,
+          email: email || undefined,
+          telephone: formaterTelephoneGuinee(telephone),
+          profil,
+          nom,
+          prenoms,
+        }),
       });
       const donnees = await reponse.json();
       if (!reponse.ok) throw new Error(JSON.stringify(donnees));
@@ -281,6 +290,20 @@ function DialogueCreerCompte({ onCree }: { onCree: () => void }) {
             <div>
               <Label htmlFor="cpt-identifiant">Identifiant</Label>
               <Input id="cpt-identifiant" value={identifiant} onChange={(e) => setIdentifiant(e.target.value)} required />
+            </div>
+            <div>
+              <Label htmlFor="cpt-email">Email</Label>
+              <Input
+                id="cpt-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="prenom.nom@education.gov.gn"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Nécessaire pour que la personne puisse activer son compte elle-même (code envoyé par
+                email) — sans email, seul le Super Admin pourra l&apos;activer manuellement.
+              </p>
             </div>
             <div>
               <Label htmlFor="cpt-telephone">Téléphone</Label>
