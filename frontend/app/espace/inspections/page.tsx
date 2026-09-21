@@ -12,7 +12,7 @@ import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
 import { useUtilisateurCourant } from "@/lib/contexte-utilisateur";
 import { useFormulaireDialogue } from "@/lib/hooks/use-formulaire-dialogue";
-import { useRessource } from "@/lib/hooks/use-ressource";
+import { useRessource, useRessourcePaginee } from "@/lib/hooks/use-ressource";
 import { cn } from "@/lib/utils";
 
 type Inspection = {
@@ -44,13 +44,12 @@ function StatutBadge({ statut, label }: { statut: string; label: string }) {
 
 export default function InspectionsPage() {
   const utilisateur = useUtilisateurCourant();
-  const { items, chargement, erreur, creer, action, recharger } = useRessource<Inspection>(
-    "/etablissements/inspections/"
-  );
-  const { items: ecoles } = useRessource<Ecole>("/etablissements/ecoles/");
   const [filtreStatut, setFiltreStatut] = useState<(typeof FILTRES_STATUT)[number]>("Tous");
-
-  const itemsFiltres = items.filter((i) => filtreStatut === "Tous" || i.statut === filtreStatut);
+  const { items, count, page, setPage, totalPages, chargement, erreur, creer, action, recharger } =
+    useRessourcePaginee<Inspection>("/etablissements/inspections/", {
+      filtres: { statut: filtreStatut === "Tous" ? undefined : filtreStatut },
+    });
+  const { items: ecoles } = useRessource<Ecole>("/etablissements/ecoles/");
 
   const [ecoleId, setEcoleId] = useState("");
   const [datePrevue, setDatePrevue] = useState("");
@@ -58,10 +57,13 @@ export default function InspectionsPage() {
 
   return (
     <SectionTable
-      titre={`Inspections (${itemsFiltres.length})`}
-      items={itemsFiltres}
+      titre={`Inspections (${count})`}
+      items={items}
       chargement={chargement}
       erreur={erreur}
+      page={page}
+      totalPages={totalPages}
+      onPageChange={setPage}
       filtres={
         <div className="flex flex-wrap gap-1.5">
           {FILTRES_STATUT.map((f) => (

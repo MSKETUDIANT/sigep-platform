@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
 import { useFormulaireDialogue } from "@/lib/hooks/use-formulaire-dialogue";
-import { useRessource } from "@/lib/hooks/use-ressource";
+import { useRessource, useRessourcePaginee } from "@/lib/hooks/use-ressource";
 import { cn } from "@/lib/utils";
 
 type Signalement = {
@@ -55,13 +55,12 @@ function StatutBadge({ statut, label }: { statut: string; label: string }) {
 }
 
 export default function SignalementsPage() {
-  const { items, chargement, erreur, creer, action, recharger } = useRessource<Signalement>(
-    "/etablissements/signalements/"
-  );
-  const { items: ecoles } = useRessource<Ecole>("/etablissements/ecoles/");
   const [filtreStatut, setFiltreStatut] = useState<(typeof FILTRES_STATUT)[number]>("Tous");
-
-  const itemsFiltres = items.filter((s) => filtreStatut === "Tous" || s.statut === filtreStatut);
+  const { items, count, page, setPage, totalPages, chargement, erreur, creer, action, recharger } =
+    useRessourcePaginee<Signalement>("/etablissements/signalements/", {
+      filtres: { statut: filtreStatut === "Tous" ? undefined : filtreStatut },
+    });
+  const { items: ecoles } = useRessource<Ecole>("/etablissements/ecoles/");
 
   const [ecoleId, setEcoleId] = useState("");
   const [categorie, setCategorie] = useState("infrastructure");
@@ -70,10 +69,13 @@ export default function SignalementsPage() {
 
   return (
     <SectionTable
-      titre={`Signalements (${itemsFiltres.length})`}
-      items={itemsFiltres}
+      titre={`Signalements (${count})`}
+      items={items}
       chargement={chargement}
       erreur={erreur}
+      page={page}
+      totalPages={totalPages}
+      onPageChange={setPage}
       filtres={
         <div className="flex flex-wrap gap-1.5">
           {FILTRES_STATUT.map((f) => (

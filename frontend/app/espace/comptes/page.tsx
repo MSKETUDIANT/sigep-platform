@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
 import { apiFetch } from "@/lib/api";
-import { useRessource } from "@/lib/hooks/use-ressource";
+import { useRessource, useRessourcePaginee } from "@/lib/hooks/use-ressource";
 import { cn } from "@/lib/utils";
 
 type Utilisateur = {
@@ -79,16 +79,12 @@ function AvatarInitiales({ prenoms, nom }: { prenoms: string; nom: string }) {
 }
 
 export default function ComptesPage() {
-  const { items, chargement, erreur, recharger } = useRessource<Utilisateur>("/comptes/utilisateurs/");
   const [recherche, setRecherche] = useState("");
   const [filtreStatut, setFiltreStatut] = useState<(typeof FILTRES_STATUT)[number]>("Tous");
-
-  const itemsFiltres = items.filter((u) => {
-    const correspondStatut = filtreStatut === "Tous" || u.statut === filtreStatut;
-    const texte = `${u.identifiant} ${u.nom} ${u.prenoms}`.toLowerCase();
-    const correspondRecherche = texte.includes(recherche.toLowerCase());
-    return correspondStatut && correspondRecherche;
-  });
+  const { items, count, page, setPage, totalPages, chargement, erreur, recharger } = useRessourcePaginee<Utilisateur>(
+    "/comptes/utilisateurs/",
+    { recherche, filtres: { statut: filtreStatut === "Tous" ? undefined : filtreStatut } }
+  );
 
   return (
     <div className="space-y-4">
@@ -118,10 +114,13 @@ export default function ComptesPage() {
       </div>
 
       <SectionTable
-        titre={`Comptes utilisateurs (${itemsFiltres.length})`}
-        items={itemsFiltres}
+        titre={`Comptes utilisateurs (${count})`}
+        items={items}
         chargement={chargement}
         erreur={erreur}
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
         colonnes={[
           {
             label: "Utilisateur",

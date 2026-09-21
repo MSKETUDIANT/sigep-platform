@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
 import { useFormulaireDialogue } from "@/lib/hooks/use-formulaire-dialogue";
-import { useRessource } from "@/lib/hooks/use-ressource";
+import { useRessource, useRessourcePaginee } from "@/lib/hooks/use-ressource";
 import { cn } from "@/lib/utils";
 
 type Region = { id: string; code: string; nom: string; chef_lieu: string | null; actif: boolean };
@@ -133,21 +133,25 @@ function PastillesFiltre<T extends string>({
 }
 
 function SectionRegions() {
-  const { items, chargement, erreur, creer } = useRessource<Region>("/territoire/regions/");
   const [recherche, setRecherche] = useState("");
+  const { items, count, page, setPage, totalPages, chargement, erreur, creer } = useRessourcePaginee<Region>(
+    "/territoire/regions/",
+    { recherche }
+  );
   const [nom, setNom] = useState("");
   const [code, setCode] = useState("");
   const [chefLieu, setChefLieu] = useState("");
   const dialogue = useFormulaireDialogue<Record<string, unknown>>((payload) => creer(payload));
 
-  const itemsFiltres = items.filter((r) => r.nom.toLowerCase().includes(recherche.toLowerCase()));
-
   return (
     <SectionTable
-      titre={`Régions (${itemsFiltres.length})`}
-      items={itemsFiltres}
+      titre={`Régions (${count})`}
+      items={items}
       chargement={chargement}
       erreur={erreur}
+      page={page}
+      totalPages={totalPages}
+      onPageChange={setPage}
       filtres={<Input placeholder="Rechercher une région..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />}
       colonnes={[
         { label: "Code", rendu: (r) => r.code },
@@ -202,22 +206,26 @@ function SectionRegions() {
 }
 
 function SectionPrefectures() {
-  const { items, chargement, erreur, creer } = useRessource<Prefecture>("/territoire/prefectures/");
-  const { items: regions } = useRessource<Region>("/territoire/regions/");
   const [recherche, setRecherche] = useState("");
+  const { items, count, page, setPage, totalPages, chargement, erreur, creer } = useRessourcePaginee<Prefecture>(
+    "/territoire/prefectures/",
+    { recherche }
+  );
+  const { items: regions } = useRessource<Region>("/territoire/regions/");
   const [nom, setNom] = useState("");
   const [code, setCode] = useState("");
   const [regionId, setRegionId] = useState("");
   const dialogue = useFormulaireDialogue<Record<string, unknown>>((payload) => creer(payload));
 
-  const itemsFiltres = items.filter((p) => p.nom.toLowerCase().includes(recherche.toLowerCase()));
-
   return (
     <SectionTable
-      titre={`Préfectures (${itemsFiltres.length})`}
-      items={itemsFiltres}
+      titre={`Préfectures (${count})`}
+      items={items}
       chargement={chargement}
       erreur={erreur}
+      page={page}
+      totalPages={totalPages}
+      onPageChange={setPage}
       filtres={<Input placeholder="Rechercher une préfecture..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />}
       colonnes={[
         { label: "Code", rendu: (p) => p.code },
@@ -286,28 +294,27 @@ const FILTRES_STATUT_TERRITOIRE = [
 ];
 
 function SectionSousPrefectures() {
-  const { items, chargement, erreur, creer, mettreAJour } = useRessource<SousPrefecture>(
-    "/territoire/sous-prefectures/"
-  );
-  const { items: prefectures } = useRessource<Prefecture>("/territoire/prefectures/");
   const [recherche, setRecherche] = useState("");
   const [filtreStatut, setFiltreStatut] = useState<(typeof FILTRES_STATUT_TERRITOIRE)[number]["valeur"]>("Tous");
+  const { items, count, page, setPage, totalPages, chargement, erreur, creer, mettreAJour } =
+    useRessourcePaginee<SousPrefecture>("/territoire/sous-prefectures/", {
+      recherche,
+      filtres: { statut: filtreStatut === "Tous" ? undefined : filtreStatut },
+    });
+  const { items: prefectures } = useRessource<Prefecture>("/territoire/prefectures/");
   const [nom, setNom] = useState("");
   const [prefectureId, setPrefectureId] = useState("");
   const dialogue = useFormulaireDialogue<Record<string, unknown>>((payload) => creer(payload));
 
-  const itemsFiltres = items.filter(
-    (s) =>
-      s.nom.toLowerCase().includes(recherche.toLowerCase()) &&
-      (filtreStatut === "Tous" || s.statut === filtreStatut)
-  );
-
   return (
     <SectionTable
-      titre={`Sous-préfectures (${itemsFiltres.length})`}
-      items={itemsFiltres}
+      titre={`Sous-préfectures (${count})`}
+      items={items}
       chargement={chargement}
       erreur={erreur}
+      page={page}
+      totalPages={totalPages}
+      onPageChange={setPage}
       filtres={
         <>
           <Input placeholder="Rechercher une sous-préfecture..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />
@@ -388,28 +395,28 @@ const FILTRES_TYPE_COMMUNE = [
 ];
 
 function SectionCommunes() {
-  const { items, chargement, erreur, creer } = useRessource<Commune>("/territoire/communes/");
-  const { items: regions } = useRessource<Region>("/territoire/regions/");
   const [recherche, setRecherche] = useState("");
   const [filtreType, setFiltreType] = useState<(typeof FILTRES_TYPE_COMMUNE)[number]["valeur"]>("Tous");
+  const { items, count, page, setPage, totalPages, chargement, erreur, creer } = useRessourcePaginee<Commune>(
+    "/territoire/communes/",
+    { recherche, filtres: { type_commune: filtreType === "Tous" ? undefined : filtreType } }
+  );
+  const { items: regions } = useRessource<Region>("/territoire/regions/");
   const [nom, setNom] = useState("");
   const [code, setCode] = useState("");
   const [regionId, setRegionId] = useState("");
   const [typeCommune, setTypeCommune] = useState("urbaine");
   const dialogue = useFormulaireDialogue<Record<string, unknown>>((payload) => creer(payload));
 
-  const itemsFiltres = items.filter(
-    (c) =>
-      c.nom.toLowerCase().includes(recherche.toLowerCase()) &&
-      (filtreType === "Tous" || c.type_commune === filtreType)
-  );
-
   return (
     <SectionTable
-      titre={`Communes (${itemsFiltres.length})`}
-      items={itemsFiltres}
+      titre={`Communes (${count})`}
+      items={items}
       chargement={chargement}
       erreur={erreur}
+      page={page}
+      totalPages={totalPages}
+      onPageChange={setPage}
       filtres={
         <>
           <Input placeholder="Rechercher une commune..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />
@@ -484,26 +491,27 @@ function SectionCommunes() {
 }
 
 function SectionQuartiers() {
-  const { items, chargement, erreur, creer, mettreAJour } = useRessource<Quartier>("/territoire/quartiers/");
-  const { items: communes } = useRessource<Commune>("/territoire/communes/");
   const [recherche, setRecherche] = useState("");
   const [filtreStatut, setFiltreStatut] = useState<(typeof FILTRES_STATUT_TERRITOIRE)[number]["valeur"]>("Tous");
+  const { items, count, page, setPage, totalPages, chargement, erreur, creer, mettreAJour } =
+    useRessourcePaginee<Quartier>("/territoire/quartiers/", {
+      recherche,
+      filtres: { statut: filtreStatut === "Tous" ? undefined : filtreStatut },
+    });
+  const { items: communes } = useRessource<Commune>("/territoire/communes/");
   const [nom, setNom] = useState("");
   const [communeId, setCommuneId] = useState("");
   const dialogue = useFormulaireDialogue<Record<string, unknown>>((payload) => creer(payload));
 
-  const itemsFiltres = items.filter(
-    (q) =>
-      q.nom.toLowerCase().includes(recherche.toLowerCase()) &&
-      (filtreStatut === "Tous" || q.statut === filtreStatut)
-  );
-
   return (
     <SectionTable
-      titre={`Quartiers (${itemsFiltres.length})`}
-      items={itemsFiltres}
+      titre={`Quartiers (${count})`}
+      items={items}
       chargement={chargement}
       erreur={erreur}
+      page={page}
+      totalPages={totalPages}
+      onPageChange={setPage}
       filtres={
         <>
           <Input placeholder="Rechercher un quartier..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />

@@ -11,7 +11,7 @@ import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
 import { apiFetch } from "@/lib/api";
 import { useFormulaireDialogue } from "@/lib/hooks/use-formulaire-dialogue";
-import { useRessource } from "@/lib/hooks/use-ressource";
+import { useRessource, useRessourcePaginee } from "@/lib/hooks/use-ressource";
 
 type Filiation = { id: string; lien: string; lien_display: string; nom_complet: string; telephone: string; urgence: boolean };
 type Eleve = {
@@ -36,14 +36,11 @@ const LIENS = [
 ];
 
 export default function ElevesPage() {
-  const { items, chargement, erreur, creer, recharger } = useRessource<Eleve>("/pedagogie/eleves/");
+  const [recherche, setRecherche] = useState("");
+  const { items, count, page, setPage, totalPages, chargement, erreur, creer, recharger } =
+    useRessourcePaginee<Eleve>("/pedagogie/eleves/", { recherche });
   const { items: ecoles } = useRessource<Ecole>("/etablissements/ecoles/");
   const { items: classes } = useRessource<Classe>("/territoire/classes/");
-
-  const [recherche, setRecherche] = useState("");
-  const itemsFiltres = items.filter((e) =>
-    `${e.nom} ${e.prenoms} ${e.matricule}`.toLowerCase().includes(recherche.toLowerCase())
-  );
 
   const [nom, setNom] = useState("");
   const [prenoms, setPrenoms] = useState("");
@@ -55,10 +52,13 @@ export default function ElevesPage() {
 
   return (
     <SectionTable
-      titre={`Élèves (${itemsFiltres.length})`}
-      items={itemsFiltres}
+      titre={`Élèves (${count})`}
+      items={items}
       chargement={chargement}
       erreur={erreur}
+      page={page}
+      totalPages={totalPages}
+      onPageChange={setPage}
       filtres={
         <Input
           placeholder="Rechercher un élève..."

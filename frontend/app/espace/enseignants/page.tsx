@@ -12,7 +12,7 @@ import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
 import { apiFetch } from "@/lib/api";
 import { useFormulaireDialogue } from "@/lib/hooks/use-formulaire-dialogue";
-import { useRessource } from "@/lib/hooks/use-ressource";
+import { useRessource, useRessourcePaginee } from "@/lib/hooks/use-ressource";
 
 type Enseignant = {
   id: string;
@@ -27,14 +27,19 @@ type Ecole = { id: string; nom: string };
 type Classe = { id: string; libelle: string; cycle_libelle: string };
 
 export default function EnseignantsPage() {
-  const { items, chargement, erreur, recharger } = useRessource<Enseignant>("/comptes/enseignants/");
+  const { items, count, page, setPage, totalPages, chargement, erreur, recharger } = useRessourcePaginee<Enseignant>(
+    "/comptes/enseignants/"
+  );
 
   return (
     <SectionTable
-      titre={`Enseignants (${items.length})`}
+      titre={`Enseignants (${count})`}
       items={items}
       chargement={chargement}
       erreur={erreur}
+      page={page}
+      totalPages={totalPages}
+      onPageChange={setPage}
       colonnes={[
         {
           label: "Enseignant",

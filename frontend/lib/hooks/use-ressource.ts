@@ -82,3 +82,114 @@ export function useRessource<T>(endpoint: string) {
 
   return { items, chargement, erreur, recharger, creer, action, mettreAJour };
 }
+
+export const TAILLE_PAGE = 25;
+
+type OptionsRessourcePaginee = {
+  /** Texte de recherche brut (débouncé en interne, envoyé comme ?search=). */
+  recherche?: string;
+  /** Filtres DRF supplémentaires (ex. { statut: "actif" }) — une valeur vide/undefined est omise. */
+  filtres?: Record<string, string | undefined>;
+};
+
+/** Variante paginée côté serveur de useRessource — pour les listes principales
+ * (SectionTable), là où charger les centaines de lignes d'un coup n'a plus de
+ * sens (327 sous-préfectures, 200 quartiers, 100+ écoles...). Recherche et
+ * filtres sont envoyés à l'API (search=/filterset_fields), pas appliqués
+ * côté client. Pour peupler un <select> avec la liste complète (ex. choisir
+ * une école dans un formulaire), continuer à utiliser useRessource. */
+export function useRessourcePaginee<T>(endpoint: string, options: OptionsRessourcePaginee = {}) {
+  const [items, setItems] = useState<T[]>([]);
+  const [count, setCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [rechercheDebouncee, setRechercheDebouncee] = useState(options.recherche ?? "");
+
+  useEffect(() => {
+    const delai = setTimeout(() => setRechercheDebouncee(options.recherche ?? ""), 300);
+    return () => clearTimeout(delai);
+  }, [options.recherche]);
+
+  const cleFiltres = JSON.stringify(options.filtres ?? {});
+
+  useEffect(() => {
+    setPage(1);
+  }, [rechercheDebouncee, cleFiltres]);
+
+  const recharger = useCallback(async () => {
+    setChargement(true);
+    setErreur(null);
+    try {
+      const params = new URLSearchParams({ page: String(page) });
+      if (rechercheDebouncee) params.set("search", rechercheDebouncee);
+      const filtres: Record<string, string | undefined> = JSON.parse(cleFiltres);
+      for (const [cle, valeur] of Object.entries(filtres)) {
+        if (valeur) params.set(cle, valeur);
+      }
+      const reponse = await apiFetch(`${endpoint}?${params.toString()}`);
+      const donnees = await reponse.json();
+      if (Array.isArray(donnees)) {
+        setItems(donnees);
+        setCount(donnees.length);
+      } else {
+        setItems(donnees.results ?? []);
+        setCount(donnees.count ?? 0);
+      }
+    } catch {
+      setErreur("Impossible de charger les données.");
+    } finally {
+      setChargement(false);
+    }
+  }, [endpoint, page, rechercheDebouncee, cleFiltres]);
+
+  useEffect(() => {
+    recharger();
+  }, [recharger]);
+
+  async function creer(payload: Record<string, unknown>) {
+    const reponse = await apiFetch(endpoint, { method: "POST", body: JSON.stringify(payload) });
+    const donnees = await reponse.json();
+    if (!reponse.ok) {
+      throw new Error(typeof donnees === "object" ? JSON.stringify(donnees) : String(donnees));
+    }
+    await recharger();
+    return donnees as T;
+  }
+
+  async function action(chemin: string, payload: Record<string, unknown> = {}) {
+    const reponse = await apiFetch(chemin, { method: "POST", body: JSON.stringify(payload) });
+    const donnees = await reponse.json();
+    if (!reponse.ok) {
+      throw new Error(typeof donnees === "object" ? JSON.stringify(donnees) : String(donnees));
+    }
+    await recharger();
+    return donnees;
+  }
+
+  async function mettreAJour(id: string, payload: Record<string, unknown>) {
+    const reponse = await apiFetch(`${endpoint}${id}/`, { method: "PATCH", body: JSON.stringify(payload) });
+    const donnees = await reponse.json();
+    if (!reponse.ok) {
+      throw new Error(typeof donnees === "object" ? JSON.stringify(donnees) : String(donnees));
+    }
+    await recharger();
+    return donnees as T;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(count / TAILLE_PAGE));
+
+  return {
+    items,
+    count,
+    page,
+    setPage,
+    totalPages,
+    chargement,
+    erreur,
+    recharger,
+    creer,
+    action,
+    mettreAJour,
+  };
+}

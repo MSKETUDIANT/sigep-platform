@@ -48,7 +48,7 @@ class CommuneViewSet(viewsets.ModelViewSet):
     serializer_class = CommuneSerializer
     permission_classes = [LectureAuthentifieEcritureSuperAdmin]
     search_fields = ["nom", "code"]
-    filterset_fields = ["region", "actif"]
+    filterset_fields = ["region", "actif", "type_commune"]
     ordering_fields = ["nom", "code"]
 
 

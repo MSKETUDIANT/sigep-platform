@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
 import { useFormulaireDialogue } from "@/lib/hooks/use-formulaire-dialogue";
-import { useRessource } from "@/lib/hooks/use-ressource";
+import { useRessource, useRessourcePaginee } from "@/lib/hooks/use-ressource";
 import { cn } from "@/lib/utils";
 
 type Ecole = {
@@ -66,12 +66,14 @@ function EtatBadge({ etat, label }: { etat: string; label: string }) {
 }
 
 export default function EcolesPage() {
-  const { items, chargement, erreur, creer } = useRessource<Ecole>("/etablissements/ecoles/");
-  const { items: sousPrefectures } = useRessource<SousPrefecture>("/territoire/sous-prefectures/");
-  const { items: quartiers } = useRessource<Quartier>("/territoire/quartiers/");
-
   const [recherche, setRecherche] = useState("");
   const [filtreEtat, setFiltreEtat] = useState<(typeof FILTRES_ETAT)[number]["valeur"]>("Tous");
+  const { items, count, page, setPage, totalPages, chargement, erreur, creer } = useRessourcePaginee<Ecole>(
+    "/etablissements/ecoles/",
+    { recherche, filtres: { etat_general: filtreEtat === "Tous" ? undefined : filtreEtat } }
+  );
+  const { items: sousPrefectures } = useRessource<SousPrefecture>("/territoire/sous-prefectures/");
+  const { items: quartiers } = useRessource<Quartier>("/territoire/quartiers/");
 
   const [nom, setNom] = useState("");
   const [schema, setSchema] = useState<"A" | "B">("A");
@@ -81,18 +83,15 @@ export default function EcolesPage() {
   const [langue, setLangue] = useState("francais");
   const dialogue = useFormulaireDialogue<Record<string, unknown>>((payload) => creer(payload));
 
-  const itemsFiltres = items.filter(
-    (e) =>
-      (e.nom.toLowerCase().includes(recherche.toLowerCase()) || e.code_ecole.toLowerCase().includes(recherche.toLowerCase())) &&
-      (filtreEtat === "Tous" || e.etat_general === filtreEtat)
-  );
-
   return (
     <SectionTable
-      titre={`Écoles (${itemsFiltres.length})`}
-      items={itemsFiltres}
+      titre={`Écoles (${count})`}
+      items={items}
       chargement={chargement}
       erreur={erreur}
+      page={page}
+      totalPages={totalPages}
+      onPageChange={setPage}
       filtres={
         <>
           <Input

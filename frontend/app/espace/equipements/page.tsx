@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
 import { useFormulaireDialogue } from "@/lib/hooks/use-formulaire-dialogue";
-import { useRessource } from "@/lib/hooks/use-ressource";
+import { useRessource, useRessourcePaginee } from "@/lib/hooks/use-ressource";
 
 type Equipement = {
   id: string;
@@ -26,11 +26,12 @@ type Equipement = {
 type Ecole = { id: string; nom: string };
 
 export default function EquipementsPage() {
-  const { items, chargement, erreur, creer } = useRessource<Equipement>("/etablissements/equipements/");
-  const { items: ecoles } = useRessource<Ecole>("/etablissements/ecoles/");
-
   const [ecoleFiltre, setEcoleFiltre] = useState("Toutes");
-  const itemsFiltres = items.filter((e) => ecoleFiltre === "Toutes" || e.ecole === ecoleFiltre);
+  const { items, count, page, setPage, totalPages, chargement, erreur, creer } = useRessourcePaginee<Equipement>(
+    "/etablissements/equipements/",
+    { filtres: { ecole: ecoleFiltre === "Toutes" ? undefined : ecoleFiltre } }
+  );
+  const { items: ecoles } = useRessource<Ecole>("/etablissements/ecoles/");
 
   const [ecoleId, setEcoleId] = useState("");
   const [type, setType] = useState("");
@@ -41,10 +42,13 @@ export default function EquipementsPage() {
 
   return (
     <SectionTable
-      titre={`Équipements (${itemsFiltres.length})`}
-      items={itemsFiltres}
+      titre={`Équipements (${count})`}
+      items={items}
       chargement={chargement}
       erreur={erreur}
+      page={page}
+      totalPages={totalPages}
+      onPageChange={setPage}
       filtres={
         <SelectNatif value={ecoleFiltre} onChange={(e) => setEcoleFiltre(e.target.value)} className="max-w-xs">
           <option value="Toutes">Toutes les écoles</option>
