@@ -48,6 +48,7 @@ const LANGUES = [
   { valeur: "arabe", label: "Arabe" },
   { valeur: "francais_arabe", label: "Français-Arabe" },
   { valeur: "bilingue", label: "Bilingue" },
+  { valeur: "anglais", label: "Anglais" },
 ];
 
 const FILTRES_ETAT = [

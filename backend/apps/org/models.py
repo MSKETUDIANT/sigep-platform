@@ -131,6 +131,7 @@ class LangueEnseignement(models.TextChoices):
     ARABE = "arabe", "Arabe"
     FRANCAIS_ARABE = "francais_arabe", "Français-Arabe"
     BILINGUE = "bilingue", "Bilingue"
+    ANGLAIS = "anglais", "Anglais"
 
 
 class EtatInfrastructure(models.TextChoices):
