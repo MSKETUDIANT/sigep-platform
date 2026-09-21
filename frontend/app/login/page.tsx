@@ -70,14 +70,6 @@ export default function LoginPage() {
             backgroundSize: "28px 28px",
           }}
         />
-        <div
-          className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-guinee-vert/20 blur-3xl"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-40 -right-20 h-96 w-96 rounded-full bg-guinee-jaune/10 blur-3xl"
-          aria-hidden
-        />
 
         <div className="relative flex items-center gap-3">
           <div className="flex gap-1">
