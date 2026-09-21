@@ -86,7 +86,7 @@ export default function EspaceLayout({ children }: { children: React.ReactNode }
   return (
     <UtilisateurContext.Provider value={utilisateur}>
       <div className="flex min-h-screen bg-muted/30">
-        <aside className="flex w-64 flex-shrink-0 flex-col bg-primary text-primary-foreground">
+        <aside className="sticky top-0 flex h-screen w-64 flex-shrink-0 flex-col overflow-y-auto bg-primary text-primary-foreground">
           <div className="flex flex-col gap-1 px-6 py-6">
             <div className="flex gap-1.5">
               <span className="h-2 w-2 rounded-full bg-guinee-rouge" />
