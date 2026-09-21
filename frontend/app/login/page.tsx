@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +18,7 @@ type ReponseConnexion = {
 };
 
 export default function LoginPage() {
+  const router = useRouter();
   const [identifiant, setIdentifiant] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
   const [resultat, setResultat] = useState<ReponseConnexion | null>(null);
@@ -42,6 +44,7 @@ export default function LoginPage() {
       setResultat(donnees);
       window.localStorage.setItem("sigep_access_token", donnees.access);
       window.localStorage.setItem("sigep_refresh_token", donnees.refresh);
+      router.push("/espace");
     } catch {
       setErreur("Impossible de contacter le serveur SIGEP.");
     } finally {
