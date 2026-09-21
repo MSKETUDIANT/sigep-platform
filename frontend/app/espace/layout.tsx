@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  ClipboardCheck,
   GraduationCap,
   LayoutDashboard,
   LogOut,
   Map,
   School,
   Settings,
+  ShieldAlert,
   Users,
   Users2,
   Wrench,
@@ -42,6 +44,8 @@ const NAV: { href: string; label: string; icone: typeof LayoutDashboard; profils
   { href: "/espace/enseignants", label: "Enseignants", icone: GraduationCap, profils: PROFILS_GESTION },
   { href: "/espace/eleves", label: "Élèves", icone: Users2, profils: PROFILS_GESTION },
   { href: "/espace/equipements", label: "Équipements", icone: Wrench, profils: PROFILS_GESTION },
+  { href: "/espace/signalements", label: "Signalements", icone: ShieldAlert, profils: PROFILS_GESTION },
+  { href: "/espace/inspections", label: "Inspections", icone: ClipboardCheck, profils: PROFILS_GESTION },
   { href: "/espace/comptes", label: "Comptes", icone: Users, profils: ["super_admin"] },
   { href: "/espace/systeme", label: "Système", icone: Settings, profils: ["super_admin"] },
 ];
