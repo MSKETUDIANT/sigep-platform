@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Eye, EyeOff, Landmark, Lock, Map, School, Users2 } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Landmark, Lock, Map, School, ShieldCheck, Users2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,34 +62,52 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen">
       {/* Panneau institutionnel — masqué sur mobile, la connexion reste utilisable en plein écran */}
-      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-primary px-12 py-12 text-primary-foreground lg:flex">
+      <div className="relative hidden w-1/2 flex-col overflow-hidden bg-primary px-14 py-14 text-primary-foreground lg:flex">
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.07]"
+          className="pointer-events-none absolute inset-0 opacity-[0.06]"
           style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
+            backgroundImage: "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
             backgroundSize: "28px 28px",
           }}
         />
+        <div
+          className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-guinee-vert/20 blur-3xl"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -bottom-40 -right-20 h-96 w-96 rounded-full bg-guinee-jaune/10 blur-3xl"
+          aria-hidden
+        />
 
-        <div className="relative flex flex-col gap-1">
-          <div className="flex gap-1.5">
+        <div className="relative flex items-center gap-3">
+          <div className="flex gap-1">
             <span className="h-2.5 w-2.5 rounded-full bg-guinee-rouge" />
             <span className="h-2.5 w-2.5 rounded-full bg-guinee-jaune" />
             <span className="h-2.5 w-2.5 rounded-full bg-guinee-vert" />
           </div>
-          <span className="mt-3 text-2xl font-bold tracking-wide">SIGEP</span>
-          <span className="text-sm text-primary-foreground/70">
+          <div className="h-4 w-px bg-primary-foreground/20" />
+          <span className="text-sm font-medium text-primary-foreground/70">
             Ministère de l&apos;Éducation Nationale et de l&apos;Alphabétisation
           </span>
         </div>
 
-        <div className="relative flex flex-col gap-6">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-foreground/10">
-            <Landmark className="h-8 w-8" />
+        <div className="relative flex flex-1 flex-col justify-center gap-8 py-12">
+          <div className="flex flex-col gap-6">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-foreground/10 ring-1 ring-primary-foreground/15">
+              <Landmark className="h-8 w-8" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-4xl font-bold tracking-tight">SIGEP</span>
+              <span className="text-sm text-primary-foreground/60">
+                Système Intégré de Gestion de l&apos;Enseignement Préuniversitaire
+              </span>
+            </div>
           </div>
+
+          <div className="h-px w-16 bg-primary-foreground/25" />
+
           <div className="flex flex-col gap-3">
-            <h1 className="text-3xl font-bold leading-tight">
+            <h1 className="max-w-md text-2xl font-semibold leading-snug">
               La gestion de l&apos;enseignement préuniversitaire.
             </h1>
             <p className="max-w-md text-sm leading-relaxed text-primary-foreground/70">
@@ -98,15 +116,18 @@ export default function LoginPage() {
               Guinée.
             </p>
           </div>
+
           <div className="flex flex-wrap gap-3">
             {ATOUTS.map((a) => {
               const Icone = a.icone;
               return (
                 <div
                   key={a.label}
-                  className="flex items-center gap-2 rounded-lg bg-primary-foreground/10 px-4 py-3"
+                  className="flex items-center gap-2.5 rounded-xl border border-primary-foreground/10 bg-primary-foreground/[0.06] px-4 py-2.5 backdrop-blur-sm"
                 >
-                  <Icone className="h-4 w-4" />
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-foreground/10">
+                    <Icone className="h-3.5 w-3.5" />
+                  </div>
                   <span className="text-xs font-medium">{a.label}</span>
                 </div>
               );
@@ -114,85 +135,96 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="relative text-xs text-primary-foreground/50">
+        <p className="relative text-xs text-primary-foreground/45">
           © 2026 République de Guinée — Tous droits réservés
         </p>
       </div>
 
       {/* Panneau de connexion */}
-      <div className="flex w-full flex-1 items-center justify-center bg-background p-6 lg:w-1/2">
+      <div className="flex w-full flex-1 items-center justify-center bg-muted/40 p-6 lg:w-1/2">
         <div className="w-full max-w-sm">
-          <div className="mb-6 flex items-center gap-2 lg:hidden">
+          <div className="mb-8 flex items-center gap-2 lg:hidden">
             <span className="h-2 w-2 rounded-full bg-guinee-rouge" />
             <span className="h-2 w-2 rounded-full bg-guinee-jaune" />
             <span className="h-2 w-2 rounded-full bg-guinee-vert" />
             <span className="text-lg font-bold text-primary">SIGEP</span>
           </div>
 
-          <div className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs font-medium uppercase tracking-wide text-secondary-foreground">
-            <Lock className="h-3 w-3" />
-            Accès sécurisé
-          </div>
-          <h2 className="text-2xl font-bold text-primary">Connexion</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Accès réservé aux agents du Ministère et des directions territoriales de l&apos;éducation.
-          </p>
+          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-lg shadow-primary/5">
+            <div className="h-1.5 w-full bg-gradient-to-r from-guinee-rouge via-guinee-jaune to-guinee-vert" />
 
-          <form onSubmit={seConnecter} className="mt-6 flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="identifiant">Identifiant</Label>
-              <Input
-                id="identifiant"
-                type="text"
-                value={identifiant}
-                onChange={(e) => setIdentifiant(e.target.value)}
-                required
-                autoFocus
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="mot-de-passe">Mot de passe</Label>
-              <div className="relative">
-                <Input
-                  id="mot-de-passe"
-                  type={motDePasseVisible ? "text" : "password"}
-                  value={motDePasse}
-                  onChange={(e) => setMotDePasse(e.target.value)}
-                  required
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setMotDePasseVisible((v) => !v)}
-                  className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
-                  tabIndex={-1}
-                  aria-label={motDePasseVisible ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                >
-                  {motDePasseVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+            <div className="p-8">
+              <div className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-secondary-foreground">
+                <Lock className="h-3 w-3" />
+                Accès sécurisé
               </div>
-            </div>
+              <h2 className="text-2xl font-bold text-primary">Connexion</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                Accès réservé aux agents du Ministère et des directions territoriales de l&apos;éducation.
+              </p>
 
-            {erreur && <p className="text-sm text-destructive">{erreur}</p>}
+              <form onSubmit={seConnecter} className="mt-7 flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="identifiant">Identifiant</Label>
+                  <Input
+                    id="identifiant"
+                    type="text"
+                    value={identifiant}
+                    onChange={(e) => setIdentifiant(e.target.value)}
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="mot-de-passe">Mot de passe</Label>
+                  <div className="relative">
+                    <Input
+                      id="mot-de-passe"
+                      type={motDePasseVisible ? "text" : "password"}
+                      value={motDePasse}
+                      onChange={(e) => setMotDePasse(e.target.value)}
+                      required
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setMotDePasseVisible((v) => !v)}
+                      className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
+                      tabIndex={-1}
+                      aria-label={motDePasseVisible ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                    >
+                      {motDePasseVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
 
-            {resultat && (
-              <div className="rounded-md bg-secondary p-3 text-sm text-secondary-foreground">
-                <p>
-                  Connecté en tant que <strong>{resultat.nom_complet}</strong> ({resultat.profil})
-                </p>
-                {resultat.mot_de_passe_provisoire && (
-                  <p className="mt-1 text-accent-foreground">Mot de passe provisoire — à changer.</p>
+                {erreur && <p className="text-sm text-destructive">{erreur}</p>}
+
+                {resultat && (
+                  <div className="rounded-md bg-secondary p-3 text-sm text-secondary-foreground">
+                    <p>
+                      Connecté en tant que <strong>{resultat.nom_complet}</strong> ({resultat.profil})
+                    </p>
+                    {resultat.mot_de_passe_provisoire && (
+                      <p className="mt-1 text-accent-foreground">Mot de passe provisoire — à changer.</p>
+                    )}
+                  </div>
                 )}
+
+                <Button type="submit" disabled={enCours} className="mt-2 w-full">
+                  {enCours ? "Connexion..." : "Se connecter"}
+                  {!enCours && <ArrowRight className="ml-1.5 h-4 w-4" />}
+                </Button>
+              </form>
+
+              <div className="mt-6 flex items-center gap-1.5 border-t border-border pt-5 text-xs text-muted-foreground">
+                <ShieldCheck className="h-3.5 w-3.5 flex-shrink-0" />
+                Connexion chiffrée. L&apos;accès à ce système est réservé au personnel autorisé.
               </div>
-            )}
+            </div>
+          </div>
 
-            <Button type="submit" disabled={enCours} className="mt-2 w-full">
-              {enCours ? "Connexion..." : "Se connecter"}
-              {!enCours && <ArrowRight className="ml-1.5 h-4 w-4" />}
-            </Button>
-          </form>
-
-          <p className="mt-8 text-center text-xs text-muted-foreground">
+          <p className="mt-6 text-center text-xs text-muted-foreground">
             © 2026 SIGEP — République de Guinée
           </p>
         </div>
