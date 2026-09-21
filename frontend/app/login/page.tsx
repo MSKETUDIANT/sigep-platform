@@ -151,8 +151,6 @@ export default function LoginPage() {
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-lg shadow-primary/5">
-            <div className="h-1.5 w-full bg-gradient-to-r from-guinee-rouge via-guinee-jaune to-guinee-vert" />
-
             <div className="p-8">
               <div className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-secondary-foreground">
                 <Lock className="h-3 w-3" />
