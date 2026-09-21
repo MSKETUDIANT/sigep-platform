@@ -5,6 +5,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 from apps.aud.services import consigner
 from apps.core.permissions import EstSuperAdmin, LectureAuthentifieEcritureSuperAdmin
+from apps.org.services import PROFILS_VUE_NATIONALE, ecoles_visibles
 
 from .models import Enseignant, InterventionEnseignant, StatutCompte, Utilisateur
 from .serializers import (
@@ -100,16 +101,24 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
 
 
 class EnseignantViewSet(viewsets.ModelViewSet):
-    """US-4.1. Écriture réservée au Super Admin pour l'instant (même logique
-    que org.Ecole) — ouverture au Directeur d'École à affiner plus tard."""
+    """US-4.1 (création) et US-4.5 (liste bornée au périmètre — un enseignant
+    est visible s'il intervient dans au moins une école du périmètre du
+    profil connecté). Écriture réservée au Super Admin pour l'instant (même
+    logique que org.Ecole) — ouverture au Directeur d'École à affiner plus tard."""
 
-    queryset = Enseignant.objects.select_related("utilisateur").all()
     permission_classes = [LectureAuthentifieEcritureSuperAdmin]
     filterset_fields = ["statut_enseignant"]
     search_fields = ["matricule", "utilisateur__nom", "utilisateur__prenoms", "matiere_principale"]
 
     def get_serializer_class(self):
         return EnseignantSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = Enseignant.objects.select_related("utilisateur")
+        if user.profil in PROFILS_VUE_NATIONALE:
+            return qs
+        return qs.filter(interventions__ecole__in=ecoles_visibles(user)).distinct()
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -128,11 +137,21 @@ class EnseignantViewSet(viewsets.ModelViewSet):
 
 
 class InterventionEnseignantViewSet(viewsets.ModelViewSet):
-    """US-4.1/US-4.2 : rattachement d'un enseignant à une école/classe."""
+    """US-4.1/US-4.2/US-4.6 : rattachement d'un enseignant à une école/classe,
+    borné au périmètre (US-4.5) — sert aussi d'"emploi du temps" en filtrant
+    par ?enseignant=<son_id> (US-4.6)."""
 
-    queryset = InterventionEnseignant.objects.select_related(
-        "enseignant__utilisateur", "ecole", "classe"
-    ).all()
     serializer_class = InterventionEnseignantSerializer
     permission_classes = [LectureAuthentifieEcritureSuperAdmin]
     filterset_fields = ["enseignant", "ecole", "classe", "actif", "annee_academique"]
+
+    def get_queryset(self):
+        qs = InterventionEnseignant.objects.select_related("enseignant__utilisateur", "ecole", "classe")
+        user = self.request.user
+        if user.profil in PROFILS_VUE_NATIONALE:
+            return qs
+        if user.profil == "enseignant":
+            # US-4.6 : un enseignant voit toujours ses propres interventions,
+            # même si aucune règle de périmètre territorial ne s'applique à lui.
+            return qs.filter(enseignant__utilisateur=user)
+        return qs.filter(ecole__in=ecoles_visibles(user))

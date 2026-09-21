@@ -37,6 +37,7 @@ class UtilisateurSerializer(serializers.ModelSerializer):
     profil_display = serializers.CharField(source="get_profil_display", read_only=True)
     statut_display = serializers.CharField(source="get_statut_display", read_only=True)
     affectation_active = serializers.SerializerMethodField()
+    enseignant_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Utilisateur
@@ -44,7 +45,7 @@ class UtilisateurSerializer(serializers.ModelSerializer):
             "id", "identifiant", "email", "telephone", "profil", "profil_display",
             "statut", "statut_display", "nom", "prenoms", "date_naissance", "sexe",
             "photo_url", "mot_de_passe_provisoire", "otp_actif", "is_active",
-            "affectation_active", "cree_le", "modifie_le",
+            "affectation_active", "enseignant_id", "cree_le", "modifie_le",
         ]
         read_only_fields = [
             "id", "statut", "mot_de_passe_provisoire", "is_active", "cree_le", "modifie_le",
@@ -67,6 +68,10 @@ class UtilisateurSerializer(serializers.ModelSerializer):
             "ecole_id": str(affectation.ecole_id) if affectation.ecole_id else None,
             "date_debut": affectation.date_debut,
         }
+
+    def get_enseignant_id(self, obj):
+        fiche = getattr(obj, "fiche_enseignant", None)
+        return str(fiche.id) if fiche else None
 
 
 class UtilisateurCreateSerializer(serializers.ModelSerializer):

@@ -93,3 +93,23 @@ class EcoleViewSet(viewsets.ModelViewSet):
         return ecoles_visibles(self.request.user).select_related(
             "sous_prefecture", "prefecture", "commune", "quartier", "region", "directeur"
         )
+
+    def perform_create(self, serializer):
+        ecole = serializer.save()
+        consigner(
+            acteur=self.request.user,
+            action="creation_ecole",
+            cible_type="org.Ecole",
+            cible_id=ecole.id,
+            detail=f"{ecole.code_ecole} — {ecole.nom}",
+        )
+
+    def perform_update(self, serializer):
+        ecole = serializer.save()
+        consigner(
+            acteur=self.request.user,
+            action="modification_ecole",
+            cible_type="org.Ecole",
+            cible_id=ecole.id,
+            detail=f"{ecole.code_ecole} — {ecole.nom} modifiée",
+        )
