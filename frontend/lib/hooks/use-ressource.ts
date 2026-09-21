@@ -48,5 +48,15 @@ export function useRessource<T>(endpoint: string) {
     return donnees;
   }
 
-  return { items, chargement, erreur, recharger, creer, action };
+  async function mettreAJour(id: string, payload: Record<string, unknown>) {
+    const reponse = await apiFetch(`${endpoint}${id}/`, { method: "PATCH", body: JSON.stringify(payload) });
+    const donnees = await reponse.json();
+    if (!reponse.ok) {
+      throw new Error(typeof donnees === "object" ? JSON.stringify(donnees) : String(donnees));
+    }
+    await recharger();
+    return donnees as T;
+  }
+
+  return { items, chargement, erreur, recharger, creer, action, mettreAJour };
 }

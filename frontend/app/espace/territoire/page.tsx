@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -66,11 +65,28 @@ const LIBELLES_STATUT: Record<string, string> = {
   suspendue: "Suspendue",
 };
 
-function StatutBadge({ statut }: { statut: string }) {
-  // Légende officielle (§3 du dossier fonctionnel) : vert = conforme/actif,
-  // orange = à surveiller, rouge = critique/bloqué.
-  const variante = statut === "active" ? "succes" : statut === "suspendue" ? "destructive" : "accent";
-  return <Badge variant={variante}>{LIBELLES_STATUT[statut] ?? statut}</Badge>;
+/** US-1.7 : changer le statut d'une unité territoriale directement depuis le tableau. */
+function StatutModifiable({ valeur, onChange }: { valeur: string; onChange: (v: string) => Promise<unknown> }) {
+  const [enCours, setEnCours] = useState(false);
+
+  async function gererChangement(e: React.ChangeEvent<HTMLSelectElement>) {
+    setEnCours(true);
+    try {
+      await onChange(e.target.value);
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <SelectNatif value={valeur} onChange={gererChangement} disabled={enCours} className="h-8 w-44 text-xs">
+      {Object.entries(LIBELLES_STATUT).map(([v, label]) => (
+        <option key={v} value={v}>
+          {label}
+        </option>
+      ))}
+    </SelectNatif>
+  );
 }
 
 function SectionRegions() {
@@ -212,7 +228,9 @@ function SectionPrefectures() {
 }
 
 function SectionSousPrefectures() {
-  const { items, chargement, erreur, creer } = useRessource<SousPrefecture>("/territoire/sous-prefectures/");
+  const { items, chargement, erreur, creer, mettreAJour } = useRessource<SousPrefecture>(
+    "/territoire/sous-prefectures/"
+  );
   const { items: prefectures } = useRessource<Prefecture>("/territoire/prefectures/");
   const [nom, setNom] = useState("");
   const [prefectureId, setPrefectureId] = useState("");
@@ -228,7 +246,12 @@ function SectionSousPrefectures() {
         { label: "Code", rendu: (s) => s.code },
         { label: "Nom", rendu: (s) => s.nom },
         { label: "Préfecture", rendu: (s) => s.prefecture_nom },
-        { label: "Statut", rendu: (s) => <StatutBadge statut={s.statut} /> },
+        {
+          label: "Statut",
+          rendu: (s) => (
+            <StatutModifiable valeur={s.statut} onChange={(v) => mettreAJour(s.id, { statut: v })} />
+          ),
+        },
         { label: "Écoles", rendu: (s) => s.nombre_ecoles },
       ]}
       actionsEnTete={
@@ -369,7 +392,7 @@ function SectionCommunes() {
 }
 
 function SectionQuartiers() {
-  const { items, chargement, erreur, creer } = useRessource<Quartier>("/territoire/quartiers/");
+  const { items, chargement, erreur, creer, mettreAJour } = useRessource<Quartier>("/territoire/quartiers/");
   const { items: communes } = useRessource<Commune>("/territoire/communes/");
   const [nom, setNom] = useState("");
   const [communeId, setCommuneId] = useState("");
@@ -385,7 +408,12 @@ function SectionQuartiers() {
         { label: "Code", rendu: (q) => q.code },
         { label: "Nom", rendu: (q) => q.nom },
         { label: "Commune", rendu: (q) => q.commune_nom },
-        { label: "Statut", rendu: (q) => <StatutBadge statut={q.statut} /> },
+        {
+          label: "Statut",
+          rendu: (q) => (
+            <StatutModifiable valeur={q.statut} onChange={(v) => mettreAJour(q.id, { statut: v })} />
+          ),
+        },
       ]}
       actionsEnTete={
         <Dialog open={dialogue.ouvert} onOpenChange={dialogue.setOuvert}>

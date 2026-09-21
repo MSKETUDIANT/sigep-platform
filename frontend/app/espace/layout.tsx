@@ -13,6 +13,7 @@ const NAV = [
   { href: "/espace", label: "Tableau de bord" },
   { href: "/espace/territoire", label: "Territoire" },
   { href: "/espace/comptes", label: "Comptes" },
+  { href: "/espace/systeme", label: "Système" },
 ];
 
 export default function EspaceLayout({ children }: { children: React.ReactNode }) {
