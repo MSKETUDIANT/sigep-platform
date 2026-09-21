@@ -2,9 +2,33 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getToken } from "@/lib/api";
 
-/** Charge une liste paginée DRF et expose creer()/action() avec rechargement automatique. */
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+/** Charge une liste DRF en suivant automatiquement toutes les pages (le
+ * tableau doit afficher les 44 préfectures, pas juste les 25 premières). */
+async function chargerToutesLesPages<T>(endpoint: string): Promise<T[]> {
+  let url: string | null = `${API_URL}${endpoint}`;
+  let tous: T[] = [];
+  while (url) {
+    const token = getToken();
+    const headers: HeadersInit = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const reponse: Response = await fetch(url, { headers });
+    const donnees: { results?: T[]; next?: string | null } | T[] = await reponse.json();
+    if (Array.isArray(donnees)) {
+      tous = tous.concat(donnees);
+      url = null;
+    } else {
+      tous = tous.concat(donnees.results ?? []);
+      url = donnees.next ?? null;
+    }
+  }
+  return tous;
+}
+
+/** Charge une liste paginée DRF (toutes pages) et expose creer()/action() avec rechargement automatique. */
 export function useRessource<T>(endpoint: string) {
   const [items, setItems] = useState<T[]>([]);
   const [chargement, setChargement] = useState(true);
@@ -14,9 +38,7 @@ export function useRessource<T>(endpoint: string) {
     setChargement(true);
     setErreur(null);
     try {
-      const reponse = await apiFetch(endpoint);
-      const donnees = await reponse.json();
-      setItems(donnees.results ?? donnees);
+      setItems(await chargerToutesLesPages<T>(endpoint));
     } catch {
       setErreur("Impossible de charger les données.");
     } finally {
