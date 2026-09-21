@@ -1,28 +1,43 @@
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 160 30% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 160 30% 10%;
+
+    --primary: 163 64% 14%; /* vert SIGEP, repris du manifest PWA (#0d3b2e) */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 160 30% 96%;
+    --secondary-foreground: 163 64% 14%;
+
+    --accent: 38 92% 50%; /* or, accents et badges "à suivre" */
+    --accent-foreground: 30 40% 12%;
+
+    --muted: 160 15% 94%;
+    --muted-foreground: 160 10% 40%;
+
+    --destructive: 354 70% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 160 15% 88%;
+    --input: 160 15% 88%;
+    --ring: 163 64% 14%;
+
+    --radius: 0.5rem;
+  }
 }
 
-body {
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  color: #12261f;
-  background: #f4f7f5;
-}
-
-.page {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 3rem 1.5rem;
-}
-
-.page h1 {
-  color: #0d3b2e;
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-}
-
-.page p {
-  margin-top: 0.25rem;
-  color: #33473f;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
