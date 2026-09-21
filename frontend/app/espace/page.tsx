@@ -1,94 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { apiFetch, clearSession, getToken } from "@/lib/api";
-
-type Utilisateur = {
-  identifiant: string;
-  nom: string;
-  prenoms: string;
-  profil: string;
-};
-
-const LIBELLES_PROFIL: Record<string, string> = {
-  citoyen: "Citoyen",
-  enseignant: "Enseignant",
-  directeur_ecole: "Directeur d'École",
-  dse: "Directeur Sous-Préfectoral",
-  dce: "Directeur Communal",
-  dpe: "Directeur Préfectoral",
-  ir: "Inspecteur Régional",
-  dge: "Directeur Général de l'Éducation",
-  super_admin: "Super Admin",
-  ministre: "Ministre",
-  cabinet: "Cabinet",
-};
+import { apiFetch } from "@/lib/api";
+import { LIBELLES_PROFIL, useUtilisateurCourant } from "@/lib/contexte-utilisateur";
 
 export default function EspacePage() {
-  const router = useRouter();
-  const [utilisateur, setUtilisateur] = useState<Utilisateur | null>(null);
-  const [chargement, setChargement] = useState(true);
+  const utilisateur = useUtilisateurCourant();
+  if (!utilisateur) return null;
 
-  useEffect(() => {
-    if (!getToken()) {
-      router.replace("/login");
-      return;
-    }
-    apiFetch("/comptes/moi/")
-      .then((r) => r.json())
-      .then((donnees) => setUtilisateur(donnees))
-      .finally(() => setChargement(false));
-  }, [router]);
-
-  function seDeconnecter() {
-    clearSession();
-    router.replace("/login");
+  if (utilisateur.profil === "super_admin") {
+    return <EspaceSuperAdmin />;
   }
-
-  if (chargement) {
-    return <main className="flex min-h-screen items-center justify-center text-muted-foreground">Chargement...</main>;
-  }
-
-  if (!utilisateur) {
-    return null;
-  }
-
-  const libelleProfil = LIBELLES_PROFIL[utilisateur.profil] ?? utilisateur.profil;
 
   return (
-    <main className="min-h-screen bg-muted/30">
-      <header className="flex items-center justify-between border-b border-border bg-card px-6 py-4">
-        <div>
-          <p className="text-sm text-muted-foreground">Espace</p>
-          <h1 className="text-lg font-semibold text-primary">
-            {utilisateur.prenoms} {utilisateur.nom} — {libelleProfil}
-          </h1>
-        </div>
-        <Button variant="outline" onClick={seDeconnecter}>
-          Déconnexion
-        </Button>
-      </header>
-
-      <div className="p-6">
-        {utilisateur.profil === "super_admin" ? (
-          <EspaceSuperAdmin />
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Tableau de bord — {libelleProfil}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-muted-foreground">
-              L&apos;espace détaillé de ce profil sera construit au fil des prochains sprints, une fois
-              les modules correspondants disponibles (écoles, élèves, notes, signalements...).
-            </CardContent>
-          </Card>
-        )}
-      </div>
-    </main>
+    <Card>
+      <CardHeader>
+        <CardTitle>Tableau de bord — {LIBELLES_PROFIL[utilisateur.profil] ?? utilisateur.profil}</CardTitle>
+      </CardHeader>
+      <CardContent className="text-muted-foreground">
+        L&apos;espace détaillé de ce profil sera construit au fil des prochains sprints, une fois les
+        modules correspondants disponibles (écoles, élèves, notes, signalements...).
+      </CardContent>
+    </Card>
   );
 }
 
@@ -154,19 +90,10 @@ function EspaceSuperAdmin() {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
           <Button variant="secondary" asChild>
-            <a href="http://localhost:8000/admin/ref/sousprefecture/add/" target="_blank" rel="noreferrer">
-              Créer une sous-préfecture
-            </a>
+            <a href="/espace/territoire">Gérer le territoire</a>
           </Button>
           <Button variant="secondary" asChild>
-            <a href="http://localhost:8000/admin/ref/quartier/add/" target="_blank" rel="noreferrer">
-              Créer un quartier
-            </a>
-          </Button>
-          <Button variant="secondary" asChild>
-            <a href="http://localhost:8000/api/comptes/utilisateurs/" target="_blank" rel="noreferrer">
-              Créer un compte
-            </a>
+            <a href="/espace/comptes">Gérer les comptes</a>
           </Button>
         </CardContent>
       </Card>

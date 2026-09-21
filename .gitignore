@@ -21,6 +21,7 @@ frontend/.env
 frontend/public/sw.js
 frontend/public/workbox-*.js
 frontend/next-env.d.ts
+frontend/tsconfig.tsbuildinfo
 
 # Docker
 *.pid
