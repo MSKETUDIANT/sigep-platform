@@ -11,7 +11,11 @@ Voir aussi `docs/architecture.md` pour le détail technique.
 - [x] **Sprint 1 (semaines 1-2)** — Fondation technique + gouvernance territoriale
   - US-0.1 à US-0.5 : backend Django/GeoDjango, frontend Next.js PWA, PostgreSQL+PostGIS, architecture, schéma initial (8 schémas)
   - US-1.1 à US-1.7 : régions, préfectures, sous-préfectures, communes, quartiers (CRUD + API + admin)
-- [ ] Sprint 2 — Authentification & comptes territoriaux (EPIC 2)
+- [x] **Sprint 2 (semaines 3-4)** — Authentification & comptes territoriaux (EPIC 2)
+  - US-2.1 à US-2.5, US-2.7 : connexion JWT, création/révocation de compte, réinitialisation de mot de passe, affectation/réaffectation à un périmètre (`org.AffectationResponsable`), journal d'activité
+  - US-2.6 : matrice des droits (lecture ouverte, écriture réservée au Super Admin) sur le référentiel territorial et la gestion des comptes
+  - US-2.8, US-2.9 : commande de sauvegarde (`backup_db`), paramètres système
+  - **US-2.10 (OTP SMS) non fait** — en attente du choix d'un fournisseur SMS (voir `docs/architecture.md`)
 - [ ] Sprints 3 à 10 — voir le backlog
 
 ## Prérequis
@@ -37,6 +41,9 @@ docker compose exec backend python manage.py createsuperuser
 - Admin Django : http://localhost:8000/admin/
 - API territoriale (EPIC 1) : http://localhost:8000/api/territoire/regions/, `/prefectures/`,
   `/sous-prefectures/`, `/communes/`, `/quartiers/`
+- API comptes (EPIC 2) : http://localhost:8000/api/comptes/connexion/, `/moi/`, `/utilisateurs/`,
+  `/affectations/` — détail des endpoints dans `docs/architecture.md`
+- Page de connexion de test : http://localhost:3000/login
 
 ## Démarrage sans Docker
 

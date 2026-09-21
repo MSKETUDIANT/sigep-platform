@@ -5,6 +5,7 @@ Organisation des apps métier : chaque app "apps.<label>" correspond 1:1 à un
 schéma PostgreSQL (ref, org, usr, ped, ges, trv, aud, sta) — voir
 docs/architecture.md.
 """
+from datetime import timedelta
 from pathlib import Path
 
 import environ
@@ -109,10 +110,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+        # Sprint 2 : accès resserré par défaut (connexion requise). Les vues
+        # publiques (ex. apps.core.health_check) déclarent explicitement
+        # AllowAny. Le référentiel territorial applique en plus une règle
+        # "écriture réservée au Super Admin" (apps.core.permissions).
+        "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
@@ -121,6 +127,15 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 25,
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=8),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
 }
 
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000"])

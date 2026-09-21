@@ -58,9 +58,46 @@ des sprints. Point à confirmer avec l'équipe si une contrainte d'intégrité a
 
 - `usr.Utilisateur` est posé comme `AUTH_USER_MODEL` dès le Sprint 1 (au lieu d'attendre l'EPIC 2 /
   Sprint 2), pour éviter le piège classique de Django : changer de modèle utilisateur après la première
-  migration impose de tout rejouer. Seul le modèle existe pour l'instant — les vues de connexion, l'OTP
-  SMS, la réinitialisation de mot de passe et `org.AffectationResponsable` restent prévus au Sprint 2.
+  migration impose de tout rejouer.
 - US-1.6 (règle de cohérence schéma A/B) sera portée par les contraintes `CHECK` du futur modèle
   `org.Ecole` (Sprint 3) : `sous_prefecture` XOR `quartier` renseigné.
-- Les apps `org`, `ped`, `ges`, `trv`, `aud`, `sta` existent déjà (structure Django) mais sont vides —
-  elles seront peuplées au fil des sprints suivants, en gardant la correspondance 1 app = 1 schéma.
+- Les apps `ped`, `ges`, `trv`, `sta` existent déjà (structure Django) mais restent vides — elles seront
+  peuplées au fil des sprints suivants, en gardant la correspondance 1 app = 1 schéma.
+
+## API — Sprint 2 (authentification & comptes, EPIC 2)
+
+Authentification par **JWT** (`djangorestframework-simplejwt`) — choix motivé par le découplage
+backend/frontend (Next.js consomme l'API comme n'importe quel client, pas de session/cookie partagé
+requis). Jeton d'accès : 8h ; jeton de rafraîchissement : 7j, avec rotation.
+
+| Endpoint | Méthode | Rôle |
+|---|---|---|
+| `/api/comptes/connexion/` | POST | US-2.1 — identifiant + mot de passe -> tokens JWT + profil (refuse les comptes non "actif") |
+| `/api/comptes/rafraichir/` | POST | Renouvellement du jeton d'accès |
+| `/api/comptes/moi/` | GET | Utilisateur courant (pour la redirection frontend vers l'espace du profil) |
+| `/api/comptes/utilisateurs/` | GET/POST | US-2.2 — création de compte (Super Admin uniquement), mot de passe provisoire généré automatiquement |
+| `/api/comptes/utilisateurs/{id}/revoquer/` | POST | US-2.5 — révocation, accès bloqué immédiatement (`is_active=False`) |
+| `/api/comptes/utilisateurs/{id}/reinitialiser_mot_de_passe/` | POST | US-2.7 — reset admin, nouveau mot de passe provisoire renvoyé une seule fois |
+| `/api/comptes/affectations/` | GET/POST | US-2.3 — affectation d'un responsable (DSE/DCE/DPE/IR) à son périmètre unique |
+| `/api/comptes/affectations/{id}/reaffecter/` | POST | US-2.4 — clôture l'affectation active et en ouvre une nouvelle, tracée dans `aud.JournalActivite` |
+
+**Matrice des droits (US-2.6)** — implémentée pour l'instant sur le référentiel territorial et la
+gestion des comptes : `apps.core.permissions.LectureAuthentifieEcritureSuperAdmin` (lecture pour tout
+compte authentifié, écriture réservée au Super Admin) sur `apps.ref` ; `EstSuperAdmin` (accès total
+réservé) sur `apps.usr` et `apps.org`. Le reste de la matrice §17 (par périmètre territorial DSE/DCE/
+DPE/IR) sera affiné au fur et à mesure que les modules concernés existeront.
+
+**`org.AffectationResponsable`** : `ecole_id` reste un `UUIDField` brut (pas de `ForeignKey`) tant que
+`org.Ecole` n'existe pas (Sprint 3) — un `directeur_ecole` ne peut donc pas encore être affecté via cette
+API, ce sera ajouté avec `org.Ecole`.
+
+**US-2.8 (sauvegardes)** : `python manage.py backup_db` (pg_dump, format custom) — voir le docstring de
+la commande pour la planification (cron/Tâches planifiées) et la restauration (`pg_restore`).
+
+**US-2.9 (paramètres système)** : `apps.core.ParametreSysteme`, clé/valeur générique, gérable depuis
+l'admin Django — pas d'API dédiée pour l'instant (pas de besoin identifié côté frontend à ce stade).
+
+**US-2.10 (OTP SMS) — non implémenté.** Les champs `otp_secret`/`otp_actif` existent déjà sur
+`usr.Utilisateur` (Sprint 1) mais aucune passerelle SMS n'a été choisie ni configurée ; construire la
+vérification OTP sans provider réel produirait une fausse impression de fonctionnalité. À reprendre dès
+qu'un fournisseur (Twilio, Africa's Talking, Orange SMS API...) est désigné.
