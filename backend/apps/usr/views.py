@@ -10,12 +10,14 @@ from apps.org.services import PROFILS_VUE_NATIONALE, ecoles_visibles
 from .models import Enseignant, InterventionEnseignant, StatutCompte, Utilisateur
 from .serializers import (
     ConnexionSerializer,
+    DemandeOtpSerializer,
     EnseignantSerializer,
     InterventionEnseignantSerializer,
     UtilisateurCreateSerializer,
     UtilisateurSerializer,
+    VerifierOtpSerializer,
 )
-from .utils import generer_mot_de_passe_provisoire
+from .utils import envoyer_otp, generer_mot_de_passe_provisoire
 
 
 class ConnexionView(TokenObtainPairView):
@@ -24,6 +26,49 @@ class ConnexionView(TokenObtainPairView):
 
     serializer_class = ConnexionSerializer
     permission_classes = [permissions.AllowAny]
+
+
+class DemanderOtpView(generics.GenericAPIView):
+    """US-2.10 : envoie un code d'activation par email à un compte en attente
+    d'activation — self-service, remplace le besoin systématique du bouton
+    "Activer" du Super Admin quand le compte a un email valide."""
+
+    serializer_class = DemandeOtpSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        envoyer_otp(serializer.utilisateur)
+        return Response({"detail": "Code envoyé par email."})
+
+
+class VerifierOtpView(generics.GenericAPIView):
+    """US-2.10 : vérifie le code reçu par email et active le compte."""
+
+    serializer_class = VerifierOtpSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        utilisateur = serializer.utilisateur
+        utilisateur.statut = StatutCompte.ACTIF
+        utilisateur.is_active = True
+        utilisateur.otp_actif = True
+        utilisateur.otp_secret = None
+        utilisateur.otp_expire_le = None
+        utilisateur.save(
+            update_fields=["statut", "is_active", "otp_actif", "otp_secret", "otp_expire_le"]
+        )
+        consigner(
+            acteur=utilisateur,
+            action="activation_compte_otp",
+            cible_type="usr.Utilisateur",
+            cible_id=utilisateur.id,
+            detail=f"Compte {utilisateur.identifiant} activé par OTP email",
+        )
+        return Response({"detail": "Compte activé — vous pouvez vous connecter."})
 
 
 class MoiView(generics.RetrieveAPIView):

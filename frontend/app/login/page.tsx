@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Eye, EyeOff, Landmark, Lock, Map, School, ShieldCheck, Users2 } from "lucide-react";
 
@@ -30,12 +31,14 @@ export default function LoginPage() {
   const [motDePasseVisible, setMotDePasseVisible] = useState(false);
   const [resultat, setResultat] = useState<ReponseConnexion | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [compteEnAttente, setCompteEnAttente] = useState(false);
   const [enCours, setEnCours] = useState(false);
 
   async function seConnecter(e: React.FormEvent) {
     e.preventDefault();
     setErreur(null);
     setResultat(null);
+    setCompteEnAttente(false);
     setEnCours(true);
     try {
       const reponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/comptes/connexion/`, {
@@ -46,6 +49,7 @@ export default function LoginPage() {
       const donnees = await reponse.json();
       if (!reponse.ok) {
         setErreur(donnees.detail || "Identifiant ou mot de passe incorrect.");
+        setCompteEnAttente(donnees.code === "statut_en_attente_activation");
         return;
       }
       setResultat(donnees);
@@ -180,7 +184,19 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {erreur && <p className="text-sm text-destructive">{erreur}</p>}
+                {erreur && (
+                  <div className="text-sm text-destructive">
+                    <p>{erreur}</p>
+                    {compteEnAttente && (
+                      <Link
+                        href={`/activation${identifiant ? `?identifiant=${encodeURIComponent(identifiant)}` : ""}`}
+                        className="mt-1 inline-block font-medium text-primary underline-offset-2 hover:underline"
+                      >
+                        Activer mon compte avec un code reçu par email →
+                      </Link>
+                    )}
+                  </div>
+                )}
 
                 {resultat && (
                   <div className="rounded-md bg-secondary p-3 text-sm text-secondary-foreground">

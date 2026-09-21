@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework_simplejwt.exceptions import AuthenticationFailed as JWTAuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -20,9 +21,15 @@ class ConnexionSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
         if self.user.statut != StatutCompte.ACTIF:
+            # Le "code" distingue en_attente_activation (auto-activable par OTP
+            # email, US-2.10) de suspendu/révoqué (action Super Admin requise).
+            # simplejwt.DetailDictMixin construit {"detail":..., "code":...} à
+            # partir des deux arguments positionnels — le second (code=) prend
+            # le dessus sur toute clé "code" fournie dans le detail, donc c'est
+            # bien lui qu'il faut renseigner ici, pas un dict.
             raise JWTAuthenticationFailed(
                 self.MESSAGES_STATUT.get(self.user.statut, "Ce compte n'est pas actif."),
-                code="compte_inactif",
+                code=f"statut_{self.user.statut}",
             )
         data["profil"] = self.user.profil
         data["identifiant"] = self.user.identifiant
@@ -156,3 +163,49 @@ class InterventionEnseignantSerializer(serializers.ModelSerializer):
             "matiere", "volume_horaire_hebdo", "annee_academique", "actif", "cree_le", "modifie_le",
         ]
         read_only_fields = ["id", "cree_le", "modifie_le"]
+
+
+class DemandeOtpSerializer(serializers.Serializer):
+    """US-2.10 : demande d'envoi d'un code d'activation par email."""
+
+    identifiant = serializers.CharField()
+
+    def validate_identifiant(self, valeur):
+        try:
+            utilisateur = Utilisateur.objects.get(identifiant=valeur)
+        except Utilisateur.DoesNotExist:
+            raise serializers.ValidationError("Aucun compte avec cet identifiant.")
+        if utilisateur.statut != StatutCompte.EN_ATTENTE_ACTIVATION:
+            raise serializers.ValidationError(
+                "Ce compte n'est pas en attente d'activation — un code d'activation ne s'applique qu'à "
+                "un compte fraîchement créé."
+            )
+        if not utilisateur.email:
+            raise serializers.ValidationError(
+                "Aucun email n'est associé à ce compte — demandez au Super Admin de l'activer manuellement."
+            )
+        self.utilisateur = utilisateur
+        return valeur
+
+
+class VerifierOtpSerializer(serializers.Serializer):
+    """US-2.10 : vérification du code reçu par email — active le compte."""
+
+    identifiant = serializers.CharField()
+    code = serializers.CharField(max_length=6, min_length=6)
+
+    def validate(self, attrs):
+        try:
+            utilisateur = Utilisateur.objects.get(identifiant=attrs["identifiant"])
+        except Utilisateur.DoesNotExist:
+            raise serializers.ValidationError("Aucun compte avec cet identifiant.")
+
+        if not utilisateur.otp_secret or not utilisateur.otp_expire_le:
+            raise serializers.ValidationError("Aucun code n'a été demandé pour ce compte.")
+        if timezone.now() > utilisateur.otp_expire_le:
+            raise serializers.ValidationError("Ce code a expiré — demandez-en un nouveau.")
+        if attrs["code"] != utilisateur.otp_secret:
+            raise serializers.ValidationError("Code incorrect.")
+
+        self.utilisateur = utilisateur
+        return attrs

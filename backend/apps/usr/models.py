@@ -87,6 +87,7 @@ class Utilisateur(AbstractBaseUser, PermissionsMixin):
     photo_url = models.TextField(null=True, blank=True)
 
     otp_secret = models.CharField(max_length=64, null=True, blank=True)
+    otp_expire_le = models.DateTimeField(null=True, blank=True)
     otp_actif = models.BooleanField(default=False)
     tentatives_echec = models.SmallIntegerField(default=0)
 

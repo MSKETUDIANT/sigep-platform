@@ -139,3 +139,16 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000"])
+
+# US-2.10 : OTP envoyé par email (décision utilisateur — pas de fournisseur SMS
+# retenu). Par défaut, backend "console" : le code s'affiche dans les logs du
+# conteneur backend (`docker compose logs backend`), aucun serveur SMTP requis
+# tant qu'un vrai fournisseur n'est pas configuré via les variables d'env.
+EMAIL_BACKEND = env.str("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST = env.str("EMAIL_HOST", default="")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_HOST_USER = env.str("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", default="SIGEP <no-reply@sigep.gov.gn>")
+OTP_VALIDITE_MINUTES = 10
