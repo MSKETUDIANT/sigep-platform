@@ -1,10 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, Landmark, MapPin, Navigation, Map as MapIcon, Users } from "lucide-react";
+import {
+  Building2,
+  Clock,
+  GraduationCap,
+  Landmark,
+  MapPin,
+  Navigation,
+  Map as MapIcon,
+  School,
+  Users,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api";
 import { LIBELLES_PROFIL, useUtilisateurCourant } from "@/lib/contexte-utilisateur";
 import { cn } from "@/lib/utils";
@@ -15,6 +26,10 @@ export default function EspacePage() {
 
   if (utilisateur.profil === "super_admin") {
     return <EspaceSuperAdmin />;
+  }
+
+  if (utilisateur.profil === "enseignant") {
+    return <EspaceEnseignant />;
   }
 
   return (
@@ -115,6 +130,120 @@ function EspaceSuperAdmin() {
           </Button>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+type Intervention = {
+  id: string;
+  ecole: string;
+  ecole_nom: string;
+  classe: string;
+  classe_libelle: string;
+  matiere: string;
+  volume_horaire_hebdo: string;
+};
+
+function EspaceEnseignant() {
+  const [interventions, setInterventions] = useState<Intervention[]>([]);
+  const [effectifs, setEffectifs] = useState<Record<string, number>>({});
+  const [chargement, setChargement] = useState(true);
+
+  useEffect(() => {
+    async function charger() {
+      // Le backend restreint deja automatiquement aux interventions de l'enseignant connecte (US-4.6).
+      const donnees = await apiFetch("/comptes/interventions-enseignants/").then((r) => r.json());
+      const liste: Intervention[] = donnees.results ?? [];
+      setInterventions(liste);
+
+      const effectifsParPaire: Record<string, number> = {};
+      await Promise.all(
+        liste.map(async (i) => {
+          const cle = `${i.ecole}-${i.classe}`;
+          if (effectifsParPaire[cle] !== undefined) return;
+          const eleves = await apiFetch(`/pedagogie/eleves/?ecole=${i.ecole}&classe=${i.classe}`).then((r) => r.json());
+          effectifsParPaire[cle] = eleves.count ?? 0;
+        })
+      );
+      setEffectifs(effectifsParPaire);
+      setChargement(false);
+    }
+    charger();
+  }, []);
+
+  const ecolesUniques = new Set(interventions.map((i) => i.ecole)).size;
+  const classesUniques = new Set(interventions.map((i) => i.classe)).size;
+  const volumeTotal = interventions.reduce((s, i) => s + parseFloat(i.volume_horaire_hebdo || "0"), 0);
+  const elevesSuivis = Object.values(effectifs).reduce((s, n) => s + n, 0);
+
+  const cartes = [
+    { label: "Écoles d'intervention", valeur: ecolesUniques, icone: School, accent: "bg-primary" },
+    { label: "Classes en charge", valeur: classesUniques, icone: GraduationCap, accent: "bg-accent" },
+    { label: "Élèves suivis", valeur: elevesSuivis, icone: Users, accent: "bg-succes" },
+    { label: "Volume horaire / semaine", valeur: `${volumeTotal}h`, icone: Clock, accent: "bg-primary" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {cartes.map((c) => {
+          const Icone = c.icone;
+          return (
+            <Card key={c.label} className="overflow-hidden">
+              <div className={cn("h-1", c.accent)} />
+              <CardContent className="p-4">
+                <Icone className="mb-2 h-5 w-5 text-muted-foreground" />
+                <p className="text-2xl font-bold text-primary">{chargement ? "…" : c.valeur}</p>
+                <p className="text-sm text-muted-foreground">{c.label}</p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Mes classes et écoles d&apos;intervention</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {chargement ? (
+            <p className="text-sm text-muted-foreground">Chargement...</p>
+          ) : interventions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Aucune affectation pour l&apos;instant — le Super Admin doit vous affecter à une école et
+              une classe.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>École</TableHead>
+                  <TableHead>Classe</TableHead>
+                  <TableHead>Matière</TableHead>
+                  <TableHead>Effectif</TableHead>
+                  <TableHead>Horaire / semaine</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {interventions.map((i) => (
+                  <TableRow key={i.id}>
+                    <TableCell>{i.ecole_nom}</TableCell>
+                    <TableCell>{i.classe_libelle}</TableCell>
+                    <TableCell>{i.matiere}</TableCell>
+                    <TableCell>{effectifs[`${i.ecole}-${i.classe}`] ?? "…"}</TableCell>
+                    <TableCell>{i.volume_horaire_hebdo}h</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <p className="text-xs text-muted-foreground">
+        Saisie des notes, appel et demande de mutation seront disponibles dans les prochains sprints
+        (Pédagogie, puis circuit de validation).
+      </p>
     </div>
   );
 }
