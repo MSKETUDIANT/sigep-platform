@@ -62,15 +62,7 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen">
       {/* Panneau institutionnel — masqué sur mobile, la connexion reste utilisable en plein écran */}
-      <div className="relative hidden w-1/2 flex-col overflow-hidden bg-primary px-14 py-14 text-primary-foreground lg:flex">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage: "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
-            backgroundSize: "28px 28px",
-          }}
-        />
-
+      <div className="relative hidden w-1/2 flex-col bg-primary px-14 py-14 text-primary-foreground lg:flex">
         <div className="relative flex items-center gap-3">
           <div className="flex gap-1">
             <span className="h-2.5 w-2.5 rounded-full bg-guinee-rouge" />
