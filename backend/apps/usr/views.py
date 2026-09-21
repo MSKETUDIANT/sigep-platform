@@ -66,6 +66,25 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
         return Response(reponse, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"])
+    def activer(self, request, pk=None):
+        """Active un compte en attente d'activation ou suspendu — sans cette
+        action, un compte créé (US-2.2, statut par défaut = en_attente_activation)
+        ne pouvait jamais se connecter, faute de trigger OTP en place (SMS
+        provider pas encore choisi, cf. décisions Sprint 2)."""
+        utilisateur = self.get_object()
+        utilisateur.statut = StatutCompte.ACTIF
+        utilisateur.is_active = True
+        utilisateur.save(update_fields=["statut", "is_active"])
+        consigner(
+            acteur=request.user,
+            action="activation_compte",
+            cible_type="usr.Utilisateur",
+            cible_id=utilisateur.id,
+            detail=f"Compte {utilisateur.identifiant} activé",
+        )
+        return Response(UtilisateurSerializer(utilisateur).data)
+
+    @action(detail=True, methods=["post"])
     def revoquer(self, request, pk=None):
         """US-2.5 : révocation, accès immédiatement bloqué (is_active=False)."""
         utilisateur = self.get_object()

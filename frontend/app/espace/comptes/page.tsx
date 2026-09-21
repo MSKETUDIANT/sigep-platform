@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { KeyRound, Plus, Send, UserX } from "lucide-react";
+import { KeyRound, Plus, Send, UserCheck, UserX } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -151,6 +151,13 @@ export default function ComptesPage() {
 function ActionsUtilisateur({ utilisateur, onChange }: { utilisateur: Utilisateur; onChange: () => void }) {
   const [enCours, setEnCours] = useState<string | null>(null);
 
+  async function activer() {
+    setEnCours("activer");
+    await apiFetch(`/comptes/utilisateurs/${utilisateur.id}/activer/`, { method: "POST" });
+    setEnCours(null);
+    onChange();
+  }
+
   async function revoquer() {
     if (!confirm(`Révoquer le compte ${utilisateur.identifiant} ? La connexion sera immédiatement bloquée.`)) return;
     setEnCours("revoquer");
@@ -179,6 +186,12 @@ function ActionsUtilisateur({ utilisateur, onChange }: { utilisateur: Utilisateu
         <KeyRound className="mr-1.5 h-4 w-4" />
         Réinitialiser mdp
       </Button>
+      {(utilisateur.statut === "en_attente_activation" || utilisateur.statut === "suspendu") && (
+        <Button size="sm" variant="secondary" disabled={enCours !== null} onClick={activer}>
+          <UserCheck className="mr-1.5 h-4 w-4" />
+          Activer
+        </Button>
+      )}
       {utilisateur.statut !== "revoque" && (
         <Button size="sm" variant="destructive" disabled={enCours !== null} onClick={revoquer}>
           <UserX className="mr-1.5 h-4 w-4" />
