@@ -14,6 +14,7 @@ import { SectionTable } from "@/components/section-table";
 import { apiFetch } from "@/lib/api";
 import { useFormulaireDialogue } from "@/lib/hooks/use-formulaire-dialogue";
 import { useRessource, useRessourcePaginee } from "@/lib/hooks/use-ressource";
+import { suggererIdentifiant } from "@/lib/utils";
 
 type Enseignant = {
   id: string;
@@ -73,6 +74,7 @@ export default function EnseignantsPage() {
 function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
   const [ouvert, setOuvert] = useState(false);
   const [identifiant, setIdentifiant] = useState("");
+  const [identifiantModifieManuel, setIdentifiantModifieManuel] = useState(false);
   const [email, setEmail] = useState("");
   const [telephone, setTelephone] = useState("");
   const [nom, setNom] = useState("");
@@ -82,9 +84,20 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [motDePasseGenere, setMotDePasseGenere] = useState<string | null>(null);
 
+  function mettreAJourNom(valeur: string) {
+    setNom(valeur);
+    if (!identifiantModifieManuel) setIdentifiant(suggererIdentifiant(prenoms, valeur));
+  }
+
+  function mettreAJourPrenoms(valeur: string) {
+    setPrenoms(valeur);
+    if (!identifiantModifieManuel) setIdentifiant(suggererIdentifiant(valeur, nom));
+  }
+
   function fermer() {
     setOuvert(false);
     setIdentifiant("");
+    setIdentifiantModifieManuel(false);
     setEmail("");
     setTelephone("");
     setNom("");
@@ -145,7 +158,18 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
           <form className="flex flex-col gap-3" onSubmit={soumettre}>
             <div>
               <Label htmlFor="ens-identifiant">Identifiant</Label>
-              <Input id="ens-identifiant" value={identifiant} onChange={(e) => setIdentifiant(e.target.value)} required />
+              <Input
+                id="ens-identifiant"
+                value={identifiant}
+                onChange={(e) => {
+                  setIdentifiant(e.target.value);
+                  setIdentifiantModifieManuel(true);
+                }}
+                required
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Suggéré automatiquement depuis le nom et les prénoms — modifiable.
+              </p>
             </div>
             <div>
               <Label htmlFor="ens-email">Email</Label>
@@ -168,11 +192,11 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="ens-nom">Nom</Label>
-                <Input id="ens-nom" value={nom} onChange={(e) => setNom(e.target.value)} required />
+                <Input id="ens-nom" value={nom} onChange={(e) => mettreAJourNom(e.target.value)} required />
               </div>
               <div>
                 <Label htmlFor="ens-prenoms">Prénoms</Label>
-                <Input id="ens-prenoms" value={prenoms} onChange={(e) => setPrenoms(e.target.value)} required />
+                <Input id="ens-prenoms" value={prenoms} onChange={(e) => mettreAJourPrenoms(e.target.value)} required />
               </div>
             </div>
             <div>

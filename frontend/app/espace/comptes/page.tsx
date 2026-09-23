@@ -19,7 +19,7 @@ import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
 import { apiFetch } from "@/lib/api";
 import { useRessource, useRessourcePaginee } from "@/lib/hooks/use-ressource";
-import { cn } from "@/lib/utils";
+import { cn, suggererIdentifiant } from "@/lib/utils";
 
 type Utilisateur = {
   id: string;
@@ -209,6 +209,7 @@ function ActionsUtilisateur({ utilisateur, onChange }: { utilisateur: Utilisateu
 function DialogueCreerCompte({ onCree }: { onCree: () => void }) {
   const [ouvert, setOuvert] = useState(false);
   const [identifiant, setIdentifiant] = useState("");
+  const [identifiantModifieManuel, setIdentifiantModifieManuel] = useState(false);
   const [email, setEmail] = useState("");
   const [telephone, setTelephone] = useState("");
   const [nom, setNom] = useState("");
@@ -218,9 +219,20 @@ function DialogueCreerCompte({ onCree }: { onCree: () => void }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [motDePasseGenere, setMotDePasseGenere] = useState<string | null>(null);
 
+  function mettreAJourNom(valeur: string) {
+    setNom(valeur);
+    if (!identifiantModifieManuel) setIdentifiant(suggererIdentifiant(prenoms, valeur));
+  }
+
+  function mettreAJourPrenoms(valeur: string) {
+    setPrenoms(valeur);
+    if (!identifiantModifieManuel) setIdentifiant(suggererIdentifiant(valeur, nom));
+  }
+
   function fermer() {
     setOuvert(false);
     setIdentifiant("");
+    setIdentifiantModifieManuel(false);
     setEmail("");
     setTelephone("");
     setNom("");
@@ -289,7 +301,18 @@ function DialogueCreerCompte({ onCree }: { onCree: () => void }) {
           <form className="flex flex-col gap-3" onSubmit={soumettre}>
             <div>
               <Label htmlFor="cpt-identifiant">Identifiant</Label>
-              <Input id="cpt-identifiant" value={identifiant} onChange={(e) => setIdentifiant(e.target.value)} required />
+              <Input
+                id="cpt-identifiant"
+                value={identifiant}
+                onChange={(e) => {
+                  setIdentifiant(e.target.value);
+                  setIdentifiantModifieManuel(true);
+                }}
+                required
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Suggéré automatiquement depuis le nom et les prénoms — modifiable.
+              </p>
             </div>
             <div>
               <Label htmlFor="cpt-email">Email</Label>
@@ -312,11 +335,11 @@ function DialogueCreerCompte({ onCree }: { onCree: () => void }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="cpt-nom">Nom</Label>
-                <Input id="cpt-nom" value={nom} onChange={(e) => setNom(e.target.value)} required />
+                <Input id="cpt-nom" value={nom} onChange={(e) => mettreAJourNom(e.target.value)} required />
               </div>
               <div>
                 <Label htmlFor="cpt-prenoms">Prénoms</Label>
-                <Input id="cpt-prenoms" value={prenoms} onChange={(e) => setPrenoms(e.target.value)} required />
+                <Input id="cpt-prenoms" value={prenoms} onChange={(e) => mettreAJourPrenoms(e.target.value)} required />
               </div>
             </div>
             <div>
