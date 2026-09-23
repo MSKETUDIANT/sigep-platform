@@ -140,6 +140,10 @@ SIMPLE_JWT = {
 
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000"])
 
+# Base du frontend, utilisée pour construire les liens envoyés par email
+# (bienvenue, activation) — à surcharger en prod avec le vrai domaine.
+FRONTEND_URL = env.str("FRONTEND_URL", default="http://localhost:3000")
+
 # US-2.10 : OTP envoyé par email (décision utilisateur — pas de fournisseur SMS
 # retenu). Par défaut, backend "console" : le code s'affiche dans les logs du
 # conteneur backend (`docker compose logs backend`), aucun serveur SMTP requis

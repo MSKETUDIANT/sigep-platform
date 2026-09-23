@@ -4,7 +4,7 @@ from rest_framework_simplejwt.exceptions import AuthenticationFailed as JWTAuthe
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import Enseignant, InterventionEnseignant, StatutCompte, Utilisateur
-from .utils import envoyer_otp, generer_mot_de_passe_provisoire
+from .utils import envoyer_email_bienvenue, envoyer_otp, generer_mot_de_passe_provisoire
 
 # US-2.10 (texte réel du backlog) : "OTP requis pour Directeur, DSE, DCE, DPE,
 # IR et Super Admin à la connexion" — une double authentification à CHAQUE
@@ -150,6 +150,7 @@ class UtilisateurCreateSerializer(serializers.ModelSerializer):
         utilisateur.statut = StatutCompte.EN_ATTENTE_ACTIVATION
         utilisateur.mot_de_passe_provisoire = True
         utilisateur.save(update_fields=["statut", "mot_de_passe_provisoire"])
+        envoyer_email_bienvenue(utilisateur)
         # Exposé une seule fois par la vue (creation response) — jamais stocké en clair.
         utilisateur.mot_de_passe_genere = mot_de_passe
         return utilisateur
@@ -194,6 +195,7 @@ class EnseignantSerializer(serializers.ModelSerializer):
         utilisateur.statut = StatutCompte.EN_ATTENTE_ACTIVATION
         utilisateur.mot_de_passe_provisoire = True
         utilisateur.save(update_fields=["statut", "mot_de_passe_provisoire"])
+        envoyer_email_bienvenue(utilisateur)
 
         enseignant = Enseignant.objects.create(utilisateur=utilisateur, **validated_data)
         enseignant.mot_de_passe_genere = mot_de_passe
