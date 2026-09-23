@@ -156,6 +156,16 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
           </div>
         ) : (
           <form className="flex flex-col gap-3" onSubmit={soumettre}>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="ens-nom">Nom</Label>
+                <Input id="ens-nom" value={nom} onChange={(e) => mettreAJourNom(e.target.value)} required />
+              </div>
+              <div>
+                <Label htmlFor="ens-prenoms">Prénoms</Label>
+                <Input id="ens-prenoms" value={prenoms} onChange={(e) => mettreAJourPrenoms(e.target.value)} required />
+              </div>
+            </div>
             <div>
               <Label htmlFor="ens-identifiant">Identifiant</Label>
               <Input
@@ -188,16 +198,6 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
             <div>
               <Label htmlFor="ens-telephone">Téléphone</Label>
               <InputTelephone id="ens-telephone" value={telephone} onChange={setTelephone} required />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="ens-nom">Nom</Label>
-                <Input id="ens-nom" value={nom} onChange={(e) => mettreAJourNom(e.target.value)} required />
-              </div>
-              <div>
-                <Label htmlFor="ens-prenoms">Prénoms</Label>
-                <Input id="ens-prenoms" value={prenoms} onChange={(e) => mettreAJourPrenoms(e.target.value)} required />
-              </div>
             </div>
             <div>
               <Label htmlFor="ens-matiere">Matière principale</Label>

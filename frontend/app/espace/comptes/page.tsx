@@ -299,6 +299,16 @@ function DialogueCreerCompte({ onCree }: { onCree: () => void }) {
           </div>
         ) : (
           <form className="flex flex-col gap-3" onSubmit={soumettre}>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="cpt-nom">Nom</Label>
+                <Input id="cpt-nom" value={nom} onChange={(e) => mettreAJourNom(e.target.value)} required />
+              </div>
+              <div>
+                <Label htmlFor="cpt-prenoms">Prénoms</Label>
+                <Input id="cpt-prenoms" value={prenoms} onChange={(e) => mettreAJourPrenoms(e.target.value)} required />
+              </div>
+            </div>
             <div>
               <Label htmlFor="cpt-identifiant">Identifiant</Label>
               <Input
@@ -331,16 +341,6 @@ function DialogueCreerCompte({ onCree }: { onCree: () => void }) {
             <div>
               <Label htmlFor="cpt-telephone">Téléphone</Label>
               <InputTelephone id="cpt-telephone" value={telephone} onChange={setTelephone} required />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="cpt-nom">Nom</Label>
-                <Input id="cpt-nom" value={nom} onChange={(e) => mettreAJourNom(e.target.value)} required />
-              </div>
-              <div>
-                <Label htmlFor="cpt-prenoms">Prénoms</Label>
-                <Input id="cpt-prenoms" value={prenoms} onChange={(e) => mettreAJourPrenoms(e.target.value)} required />
-              </div>
             </div>
             <div>
               <Label htmlFor="cpt-profil">Profil</Label>
