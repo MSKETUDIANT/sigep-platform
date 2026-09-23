@@ -26,6 +26,7 @@ function ActivationFormulaire() {
   const [identifiantResolu, setIdentifiantResolu] = useState(searchParams.get("identifiant") ?? "");
   const [code, setCode] = useState("");
   const [nouveauMotDePasse, setNouveauMotDePasse] = useState("");
+  const [confirmationMotDePasse, setConfirmationMotDePasse] = useState("");
   const [motDePasseVisible, setMotDePasseVisible] = useState(false);
   const [etape, setEtape] = useState<"identifiant" | "code" | "termine">("identifiant");
   const [enCours, setEnCours] = useState(false);
@@ -56,8 +57,12 @@ function ActivationFormulaire() {
 
   async function verifierCode(e: React.FormEvent) {
     e.preventDefault();
-    setEnCours(true);
     setErreur(null);
+    if (nouveauMotDePasse !== confirmationMotDePasse) {
+      setErreur("Les deux mots de passe ne correspondent pas.");
+      return;
+    }
+    setEnCours(true);
     try {
       const reponse = await fetch(`${API_URL}/comptes/otp/verifier/`, {
         method: "POST",
@@ -161,8 +166,23 @@ function ActivationFormulaire() {
                 </div>
                 <p className="text-xs text-muted-foreground">Au moins 8 caractères.</p>
               </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="act-mdp-confirmation">Confirmer le mot de passe</Label>
+                <Input
+                  id="act-mdp-confirmation"
+                  type={motDePasseVisible ? "text" : "password"}
+                  value={confirmationMotDePasse}
+                  onChange={(e) => setConfirmationMotDePasse(e.target.value)}
+                  minLength={8}
+                  required
+                />
+              </div>
               {erreur && <p className="text-sm text-destructive">{erreur}</p>}
-              <Button type="submit" disabled={enCours || code.length !== 6} className="w-full">
+              <Button
+                type="submit"
+                disabled={enCours || code.length !== 6 || !confirmationMotDePasse}
+                className="w-full"
+              >
                 <KeyRound className="mr-1.5 h-4 w-4" />
                 {enCours ? "Validation..." : "Valider"}
               </Button>
