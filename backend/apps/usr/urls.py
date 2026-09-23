@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
+    ConnexionAvecOtpView,
     ConnexionView,
     DemanderOtpView,
     EnseignantViewSet,
@@ -19,6 +20,7 @@ router.register("interventions-enseignants", InterventionEnseignantViewSet, base
 
 urlpatterns = [
     path("connexion/", ConnexionView.as_view(), name="connexion"),
+    path("connexion/verifier-otp/", ConnexionAvecOtpView.as_view(), name="connexion-verifier-otp"),
     path("rafraichir/", TokenRefreshView.as_view(), name="token-refresh"),
     path("moi/", MoiView.as_view(), name="moi"),
     path("otp/envoyer/", DemanderOtpView.as_view(), name="otp-envoyer"),

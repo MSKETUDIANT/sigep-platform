@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, KeyRound, Mail } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, KeyRound, Mail } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +24,8 @@ function ActivationFormulaire() {
   const searchParams = useSearchParams();
   const [identifiant, setIdentifiant] = useState(searchParams.get("identifiant") ?? "");
   const [code, setCode] = useState("");
+  const [nouveauMotDePasse, setNouveauMotDePasse] = useState("");
+  const [motDePasseVisible, setMotDePasseVisible] = useState(false);
   const [etape, setEtape] = useState<"identifiant" | "code" | "termine">("identifiant");
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -56,11 +58,17 @@ function ActivationFormulaire() {
       const reponse = await fetch(`${API_URL}/comptes/otp/verifier/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifiant, code }),
+        body: JSON.stringify({ identifiant, code, nouveau_mot_de_passe: nouveauMotDePasse }),
       });
       const donnees = await reponse.json();
       if (!reponse.ok) {
-        throw new Error(donnees.non_field_errors?.[0] || donnees.code?.[0] || donnees.detail || "Code invalide.");
+        throw new Error(
+          donnees.non_field_errors?.[0] ||
+            donnees.code?.[0] ||
+            donnees.nouveau_mot_de_passe?.[0] ||
+            donnees.detail ||
+            "Code invalide."
+        );
       }
       setEtape("termine");
     } catch (err) {
@@ -79,9 +87,10 @@ function ActivationFormulaire() {
             <span className="h-2 w-2 rounded-full bg-guinee-jaune" />
             <span className="h-2 w-2 rounded-full bg-guinee-vert" />
           </div>
-          <CardTitle className="text-primary">Activer mon compte</CardTitle>
+          <CardTitle className="text-primary">Activer mon compte / mot de passe oublié</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Un code d&apos;activation vous sera envoyé par email pour confirmer votre compte SIGEP.
+            Un code vous sera envoyé par email pour confirmer votre identité et choisir votre mot de passe —
+            que votre compte soit nouveau ou que vous ayez simplement oublié votre mot de passe.
           </p>
         </CardHeader>
         <CardContent>
@@ -124,10 +133,34 @@ function ActivationFormulaire() {
                   className="text-center text-lg tracking-[0.5em]"
                 />
               </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="act-mdp">Choisissez votre mot de passe</Label>
+                <div className="relative">
+                  <Input
+                    id="act-mdp"
+                    type={motDePasseVisible ? "text" : "password"}
+                    value={nouveauMotDePasse}
+                    onChange={(e) => setNouveauMotDePasse(e.target.value)}
+                    minLength={8}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMotDePasseVisible((v) => !v)}
+                    className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                    aria-label={motDePasseVisible ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  >
+                    {motDePasseVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">Au moins 8 caractères.</p>
+              </div>
               {erreur && <p className="text-sm text-destructive">{erreur}</p>}
               <Button type="submit" disabled={enCours || code.length !== 6} className="w-full">
                 <KeyRound className="mr-1.5 h-4 w-4" />
-                {enCours ? "Vérification..." : "Activer mon compte"}
+                {enCours ? "Validation..." : "Valider"}
               </Button>
               <button
                 type="button"
@@ -143,7 +176,7 @@ function ActivationFormulaire() {
             <div className="flex flex-col items-center gap-3 py-4 text-center">
               <CheckCircle2 className="h-10 w-10 text-succes" />
               <p className="text-sm text-muted-foreground">
-                Compte activé avec succès. Vous pouvez maintenant vous connecter.
+                Votre compte est prêt — connectez-vous avec le mot de passe que vous venez de choisir.
               </p>
               <Button asChild className="w-full">
                 <Link href="/login">Se connecter</Link>

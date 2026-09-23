@@ -4,13 +4,22 @@ from rest_framework_simplejwt.exceptions import AuthenticationFailed as JWTAuthe
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import Enseignant, InterventionEnseignant, StatutCompte, Utilisateur
-from .utils import generer_mot_de_passe_provisoire
+from .utils import envoyer_otp, generer_mot_de_passe_provisoire
+
+# US-2.10 (texte réel du backlog) : "OTP requis pour Directeur, DSE, DCE, DPE,
+# IR et Super Admin à la connexion" — une double authentification à CHAQUE
+# connexion pour ces profils sensibles, pas juste une activation ponctuelle du
+# compte (ça, c'est un mécanisme distinct, construit avant qu'on ne retrouve
+# ce texte — voir DemandeOtpSerializer/VerifierOtpSerializer plus bas).
+PROFILS_DOUBLE_AUTH = {"directeur_ecole", "dse", "dce", "dpe", "ir", "super_admin"}
 
 
 class ConnexionSerializer(TokenObtainPairSerializer):
     """US-2.1 : connexion par identifiant/mot de passe, refusée si le compte
     n'est pas actif (US-2.5 : un compte révoqué/suspendu ne peut plus se
-    connecter)."""
+    connecter). US-2.10 : pour les profils sensibles, le mot de passe seul ne
+    suffit pas — un code envoyé par email doit être vérifié via
+    ConnexionAvecOtpSerializer avant d'obtenir un token."""
 
     MESSAGES_STATUT = {
         StatutCompte.EN_ATTENTE_ACTIVATION: "Ce compte est en attente d'activation.",
@@ -31,6 +40,46 @@ class ConnexionSerializer(TokenObtainPairSerializer):
                 self.MESSAGES_STATUT.get(self.user.statut, "Ce compte n'est pas actif."),
                 code=f"statut_{self.user.statut}",
             )
+        if self.user.profil in PROFILS_DOUBLE_AUTH:
+            envoyer_otp(self.user)
+            raise JWTAuthenticationFailed(
+                "Un code de vérification a été envoyé par email.",
+                code="otp_requis",
+            )
+        data["profil"] = self.user.profil
+        data["identifiant"] = self.user.identifiant
+        data["nom_complet"] = self.user.nom_complet
+        data["mot_de_passe_provisoire"] = self.user.mot_de_passe_provisoire
+        return data
+
+
+class ConnexionAvecOtpSerializer(TokenObtainPairSerializer):
+    """US-2.10 : deuxième étape de la double authentification — identifiant +
+    mot de passe (revérifiés) + code reçu par email."""
+
+    code = serializers.CharField(write_only=True, max_length=6, min_length=6)
+
+    def validate(self, attrs):
+        code = attrs.pop("code")
+        data = super().validate(attrs)
+
+        if self.user.statut != StatutCompte.ACTIF:
+            raise JWTAuthenticationFailed(
+                ConnexionSerializer.MESSAGES_STATUT.get(self.user.statut, "Ce compte n'est pas actif."),
+                code=f"statut_{self.user.statut}",
+            )
+        if not self.user.otp_secret or not self.user.otp_expire_le:
+            raise serializers.ValidationError("Aucun code n'a été demandé — recommencez la connexion.")
+        if timezone.now() > self.user.otp_expire_le:
+            raise serializers.ValidationError("Ce code a expiré — recommencez la connexion.")
+        if code != self.user.otp_secret:
+            raise serializers.ValidationError("Code incorrect.")
+
+        self.user.otp_secret = None
+        self.user.otp_expire_le = None
+        self.user.otp_actif = True
+        self.user.save(update_fields=["otp_secret", "otp_expire_le", "otp_actif"])
+
         data["profil"] = self.user.profil
         data["identifiant"] = self.user.identifiant
         data["nom_complet"] = self.user.nom_complet
@@ -166,7 +215,11 @@ class InterventionEnseignantSerializer(serializers.ModelSerializer):
 
 
 class DemandeOtpSerializer(serializers.Serializer):
-    """US-2.10 : demande d'envoi d'un code d'activation par email."""
+    """Demande d'envoi d'un code par email — sert à la fois à activer un
+    compte fraîchement créé (statut en_attente_activation) et à la
+    réinitialisation libre-service d'un mot de passe (compte déjà actif).
+    Un compte suspendu/révoqué ne peut pas contourner son blocage par ce
+    biais — il faut repasser par le Super Admin."""
 
     identifiant = serializers.CharField()
 
@@ -175,24 +228,28 @@ class DemandeOtpSerializer(serializers.Serializer):
             utilisateur = Utilisateur.objects.get(identifiant=valeur)
         except Utilisateur.DoesNotExist:
             raise serializers.ValidationError("Aucun compte avec cet identifiant.")
-        if utilisateur.statut != StatutCompte.EN_ATTENTE_ACTIVATION:
+        if utilisateur.statut in (StatutCompte.SUSPENDU, StatutCompte.REVOQUE):
             raise serializers.ValidationError(
-                "Ce compte n'est pas en attente d'activation — un code d'activation ne s'applique qu'à "
-                "un compte fraîchement créé."
+                "Ce compte est bloqué — contactez le Super Admin."
             )
         if not utilisateur.email:
             raise serializers.ValidationError(
-                "Aucun email n'est associé à ce compte — demandez au Super Admin de l'activer manuellement."
+                "Aucun email n'est associé à ce compte — contactez le Super Admin."
             )
         self.utilisateur = utilisateur
         return valeur
 
 
 class VerifierOtpSerializer(serializers.Serializer):
-    """US-2.10 : vérification du code reçu par email — active le compte."""
+    """Vérifie le code reçu par email. Si le compte était en attente
+    d'activation, l'active. `nouveau_mot_de_passe` est optionnel côté API
+    (le bouton "Activer" du Super Admin ne passe pas par ce endpoint), mais
+    le frontend le rend obligatoire à chaque fois : l'utilisateur choisit
+    toujours lui-même son mot de passe, jamais transmis par un tiers."""
 
     identifiant = serializers.CharField()
     code = serializers.CharField(max_length=6, min_length=6)
+    nouveau_mot_de_passe = serializers.CharField(min_length=8, required=False, allow_blank=True, write_only=True)
 
     def validate(self, attrs):
         try:

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Eye, EyeOff, Landmark, Lock, Map, School, ShieldCheck, Users2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Landmark, Lock, Map, School, ShieldCheck, Users2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,10 +29,19 @@ export default function LoginPage() {
   const [identifiant, setIdentifiant] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
   const [motDePasseVisible, setMotDePasseVisible] = useState(false);
+  const [code, setCode] = useState("");
+  const [etape, setEtape] = useState<"identifiant" | "otp">("identifiant");
   const [resultat, setResultat] = useState<ReponseConnexion | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [compteEnAttente, setCompteEnAttente] = useState(false);
   const [enCours, setEnCours] = useState(false);
+
+  function accepterConnexion(donnees: ReponseConnexion) {
+    setResultat(donnees);
+    window.localStorage.setItem("sigep_access_token", donnees.access);
+    window.localStorage.setItem("sigep_refresh_token", donnees.refresh);
+    router.push("/espace");
+  }
 
   async function seConnecter(e: React.FormEvent) {
     e.preventDefault();
@@ -48,14 +57,42 @@ export default function LoginPage() {
       });
       const donnees = await reponse.json();
       if (!reponse.ok) {
+        if (donnees.code === "otp_requis") {
+          // US-2.10 : profil sensible — double authentification, un code vient
+          // d'être envoyé par email, on passe à l'étape de vérification.
+          setEtape("otp");
+          return;
+        }
         setErreur(donnees.detail || "Identifiant ou mot de passe incorrect.");
         setCompteEnAttente(donnees.code === "statut_en_attente_activation");
         return;
       }
-      setResultat(donnees);
-      window.localStorage.setItem("sigep_access_token", donnees.access);
-      window.localStorage.setItem("sigep_refresh_token", donnees.refresh);
-      router.push("/espace");
+      accepterConnexion(donnees);
+    } catch {
+      setErreur("Impossible de contacter le serveur SIGEP.");
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  async function verifierOtp(e: React.FormEvent) {
+    e.preventDefault();
+    setErreur(null);
+    setEnCours(true);
+    try {
+      const reponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/comptes/connexion/verifier-otp/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifiant, password: motDePasse, code }),
+      });
+      const donnees = await reponse.json();
+      if (!reponse.ok) {
+        setErreur(
+          donnees.non_field_errors?.[0] || donnees.detail || "Code invalide."
+        );
+        return;
+      }
+      accepterConnexion(donnees);
     } catch {
       setErreur("Impossible de contacter le serveur SIGEP.");
     } finally {
@@ -146,74 +183,118 @@ export default function LoginPage() {
               </div>
               <h2 className="text-2xl font-bold text-primary">Connexion</h2>
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                Accès réservé aux agents du Ministère et des directions territoriales de l&apos;éducation.
+                {etape === "identifiant"
+                  ? "Accès réservé aux agents du Ministère et des directions territoriales de l'éducation."
+                  : "Un code de vérification a été envoyé par email — la double authentification est requise pour votre profil."}
               </p>
 
-              <form onSubmit={seConnecter} className="mt-7 flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="identifiant">Identifiant</Label>
-                  <Input
-                    id="identifiant"
-                    type="text"
-                    value={identifiant}
-                    onChange={(e) => setIdentifiant(e.target.value)}
-                    required
-                    autoFocus
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="mot-de-passe">Mot de passe</Label>
-                  <div className="relative">
+              {etape === "identifiant" ? (
+                <form onSubmit={seConnecter} className="mt-7 flex flex-col gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="identifiant">Identifiant</Label>
                     <Input
-                      id="mot-de-passe"
-                      type={motDePasseVisible ? "text" : "password"}
-                      value={motDePasse}
-                      onChange={(e) => setMotDePasse(e.target.value)}
+                      id="identifiant"
+                      type="text"
+                      value={identifiant}
+                      onChange={(e) => setIdentifiant(e.target.value)}
                       required
-                      className="pr-10"
+                      autoFocus
                     />
-                    <button
-                      type="button"
-                      onClick={() => setMotDePasseVisible((v) => !v)}
-                      className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
-                      tabIndex={-1}
-                      aria-label={motDePasseVisible ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                    >
-                      {motDePasseVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
                   </div>
-                </div>
-
-                {erreur && (
-                  <div className="text-sm text-destructive">
-                    <p>{erreur}</p>
-                    {compteEnAttente && (
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="mot-de-passe">Mot de passe</Label>
                       <Link
                         href={`/activation${identifiant ? `?identifiant=${encodeURIComponent(identifiant)}` : ""}`}
-                        className="mt-1 inline-block font-medium text-primary underline-offset-2 hover:underline"
+                        className="text-xs font-medium text-primary underline-offset-2 hover:underline"
                       >
-                        Activer mon compte avec un code reçu par email →
+                        Mot de passe oublié ?
                       </Link>
-                    )}
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="mot-de-passe"
+                        type={motDePasseVisible ? "text" : "password"}
+                        value={motDePasse}
+                        onChange={(e) => setMotDePasse(e.target.value)}
+                        required
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setMotDePasseVisible((v) => !v)}
+                        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
+                        tabIndex={-1}
+                        aria-label={motDePasseVisible ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                      >
+                        {motDePasseVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
-                )}
 
-                {resultat && (
-                  <div className="rounded-md bg-secondary p-3 text-sm text-secondary-foreground">
-                    <p>
-                      Connecté en tant que <strong>{resultat.nom_complet}</strong> ({resultat.profil})
-                    </p>
-                    {resultat.mot_de_passe_provisoire && (
-                      <p className="mt-1 text-accent-foreground">Mot de passe provisoire — à changer.</p>
-                    )}
+                  {erreur && (
+                    <div className="text-sm text-destructive">
+                      <p>{erreur}</p>
+                      {compteEnAttente && (
+                        <Link
+                          href={`/activation${identifiant ? `?identifiant=${encodeURIComponent(identifiant)}` : ""}`}
+                          className="mt-1 inline-block font-medium text-primary underline-offset-2 hover:underline"
+                        >
+                          Activer mon compte avec un code reçu par email →
+                        </Link>
+                      )}
+                    </div>
+                  )}
+
+                  {resultat && (
+                    <div className="rounded-md bg-secondary p-3 text-sm text-secondary-foreground">
+                      <p>
+                        Connecté en tant que <strong>{resultat.nom_complet}</strong> ({resultat.profil})
+                      </p>
+                    </div>
+                  )}
+
+                  <Button type="submit" disabled={enCours} className="mt-2 w-full">
+                    {enCours ? "Connexion..." : "Se connecter"}
+                    {!enCours && <ArrowRight className="ml-1.5 h-4 w-4" />}
+                  </Button>
+                </form>
+              ) : (
+                <form onSubmit={verifierOtp} className="mt-7 flex flex-col gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="otp-code">Code reçu par email</Label>
+                    <Input
+                      id="otp-code"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
+                      inputMode="numeric"
+                      maxLength={6}
+                      required
+                      autoFocus
+                      className="text-center text-lg tracking-[0.5em]"
+                    />
                   </div>
-                )}
 
-                <Button type="submit" disabled={enCours} className="mt-2 w-full">
-                  {enCours ? "Connexion..." : "Se connecter"}
-                  {!enCours && <ArrowRight className="ml-1.5 h-4 w-4" />}
-                </Button>
-              </form>
+                  {erreur && <p className="text-sm text-destructive">{erreur}</p>}
+
+                  <Button type="submit" disabled={enCours || code.length !== 6} className="w-full">
+                    {enCours ? "Vérification..." : "Valider et se connecter"}
+                    {!enCours && <ArrowRight className="ml-1.5 h-4 w-4" />}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEtape("identifiant");
+                      setCode("");
+                      setErreur(null);
+                    }}
+                    className="flex items-center justify-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                  >
+                    <ArrowLeft className="h-3 w-3" />
+                    Retour
+                  </button>
+                </form>
+              )}
 
               <div className="mt-6 flex items-center gap-1.5 border-t border-border pt-5 text-xs text-muted-foreground">
                 <ShieldCheck className="h-3.5 w-3.5 flex-shrink-0" />

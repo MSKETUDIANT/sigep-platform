@@ -9,6 +9,7 @@ from apps.org.services import PROFILS_VUE_NATIONALE, ecoles_visibles
 
 from .models import Enseignant, InterventionEnseignant, StatutCompte, Utilisateur
 from .serializers import (
+    ConnexionAvecOtpSerializer,
     ConnexionSerializer,
     DemandeOtpSerializer,
     EnseignantSerializer,
@@ -22,16 +23,27 @@ from .utils import envoyer_otp, generer_mot_de_passe_provisoire
 
 class ConnexionView(TokenObtainPairView):
     """US-2.1 : POST identifiant + password -> tokens JWT + profil (pour la
-    redirection frontend vers l'espace correspondant)."""
+    redirection frontend vers l'espace correspondant). US-2.10 : pour les
+    profils sensibles, renvoie code="otp_requis" au lieu d'un token — la
+    deuxième étape passe par ConnexionAvecOtpView."""
 
     serializer_class = ConnexionSerializer
     permission_classes = [permissions.AllowAny]
 
 
+class ConnexionAvecOtpView(TokenObtainPairView):
+    """US-2.10 : deuxième étape de la double authentification (profils
+    sensibles) — identifiant + mot de passe + code reçu par email -> tokens."""
+
+    serializer_class = ConnexionAvecOtpSerializer
+    permission_classes = [permissions.AllowAny]
+
+
 class DemanderOtpView(generics.GenericAPIView):
-    """US-2.10 : envoie un code d'activation par email à un compte en attente
-    d'activation — self-service, remplace le besoin systématique du bouton
-    "Activer" du Super Admin quand le compte a un email valide."""
+    """Envoie un code par email — active un compte en attente d'activation,
+    ou déclenche une réinitialisation libre-service du mot de passe pour un
+    compte déjà actif. Self-service : remplace le besoin systématique du
+    bouton "Activer" du Super Admin quand le compte a un email valide."""
 
     serializer_class = DemandeOtpSerializer
     permission_classes = [permissions.AllowAny]
@@ -44,7 +56,11 @@ class DemanderOtpView(generics.GenericAPIView):
 
 
 class VerifierOtpView(generics.GenericAPIView):
-    """US-2.10 : vérifie le code reçu par email et active le compte."""
+    """Vérifie le code reçu par email : active le compte s'il était en
+    attente, et/ou met à jour le mot de passe si nouveau_mot_de_passe est
+    fourni (c'est toujours le cas depuis le frontend — l'utilisateur choisit
+    lui-même son mot de passe, jamais transmis par un tiers, cf. US-2.2/2.7
+    qui restaient muets sur ce point)."""
 
     serializer_class = VerifierOtpSerializer
     permission_classes = [permissions.AllowAny]
@@ -53,22 +69,37 @@ class VerifierOtpView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         utilisateur = serializer.utilisateur
-        utilisateur.statut = StatutCompte.ACTIF
-        utilisateur.is_active = True
-        utilisateur.otp_actif = True
+        etait_en_attente = utilisateur.statut == StatutCompte.EN_ATTENTE_ACTIVATION
+
+        champs = ["otp_secret", "otp_expire_le", "otp_actif"]
         utilisateur.otp_secret = None
         utilisateur.otp_expire_le = None
-        utilisateur.save(
-            update_fields=["statut", "is_active", "otp_actif", "otp_secret", "otp_expire_le"]
-        )
+        utilisateur.otp_actif = True
+        if etait_en_attente:
+            utilisateur.statut = StatutCompte.ACTIF
+            utilisateur.is_active = True
+            champs += ["statut", "is_active"]
+
+        nouveau_mdp = serializer.validated_data.get("nouveau_mot_de_passe")
+        if nouveau_mdp:
+            utilisateur.set_password(nouveau_mdp)
+            utilisateur.mot_de_passe_provisoire = False
+            champs += ["password", "mot_de_passe_provisoire"]
+
+        utilisateur.save(update_fields=champs)
         consigner(
             acteur=utilisateur,
-            action="activation_compte_otp",
+            action="activation_compte_otp" if etait_en_attente else "reinitialisation_mot_de_passe_otp",
             cible_type="usr.Utilisateur",
             cible_id=utilisateur.id,
-            detail=f"Compte {utilisateur.identifiant} activé par OTP email",
+            detail=(
+                f"Compte {utilisateur.identifiant} activé par OTP email"
+                if etait_en_attente
+                else f"Mot de passe réinitialisé par OTP email pour {utilisateur.identifiant}"
+            ),
         )
-        return Response({"detail": "Compte activé — vous pouvez vous connecter."})
+        message = "Compte activé" if etait_en_attente else "Mot de passe mis à jour"
+        return Response({"detail": f"{message} — vous pouvez vous connecter."})
 
 
 class MoiView(generics.RetrieveAPIView):
