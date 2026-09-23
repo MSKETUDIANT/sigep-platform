@@ -191,7 +191,7 @@ export default function LoginPage() {
               {etape === "identifiant" ? (
                 <form onSubmit={seConnecter} className="mt-7 flex flex-col gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="identifiant">Identifiant</Label>
+                    <Label htmlFor="identifiant">Identifiant ou email</Label>
                     <Input
                       id="identifiant"
                       name="username"

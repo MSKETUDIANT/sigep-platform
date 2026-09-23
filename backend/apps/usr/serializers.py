@@ -14,11 +14,22 @@ from .utils import envoyer_email_bienvenue, envoyer_otp, generer_mot_de_passe_pr
 PROFILS_DOUBLE_AUTH = {"directeur_ecole", "dse", "dce", "dpe", "ir", "super_admin"}
 
 
+def resoudre_identifiant(valeur: str) -> str:
+    """Une saisie ressemblant à un email et correspondant à un compte connu
+    est remplacée par le véritable identifiant avant authentification — pour
+    que la connexion accepte l'identifiant OU l'email, comme /activation."""
+    if valeur and "@" in valeur:
+        utilisateur = Utilisateur.objects.filter(email__iexact=valeur).first()
+        if utilisateur:
+            return utilisateur.identifiant
+    return valeur
+
+
 class ConnexionSerializer(TokenObtainPairSerializer):
-    """US-2.1 : connexion par identifiant/mot de passe, refusée si le compte
-    n'est pas actif (US-2.5 : un compte révoqué/suspendu ne peut plus se
-    connecter). US-2.10 : pour les profils sensibles, le mot de passe seul ne
-    suffit pas — un code envoyé par email doit être vérifié via
+    """US-2.1 : connexion par identifiant (ou email) + mot de passe, refusée
+    si le compte n'est pas actif (US-2.5 : un compte révoqué/suspendu ne peut
+    plus se connecter). US-2.10 : pour les profils sensibles, le mot de passe
+    seul ne suffit pas — un code envoyé par email doit être vérifié via
     ConnexionAvecOtpSerializer avant d'obtenir un token."""
 
     MESSAGES_STATUT = {
@@ -28,6 +39,7 @@ class ConnexionSerializer(TokenObtainPairSerializer):
     }
 
     def validate(self, attrs):
+        attrs[self.username_field] = resoudre_identifiant(attrs.get(self.username_field, ""))
         data = super().validate(attrs)
         if self.user.statut != StatutCompte.ACTIF:
             # Le "code" distingue en_attente_activation (auto-activable par OTP
@@ -61,6 +73,7 @@ class ConnexionAvecOtpSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         code = attrs.pop("code")
+        attrs[self.username_field] = resoudre_identifiant(attrs.get(self.username_field, ""))
         data = super().validate(attrs)
 
         if self.user.statut != StatutCompte.ACTIF:
