@@ -195,6 +195,7 @@ export default function LoginPage() {
                     <Input
                       id="identifiant"
                       type="text"
+                      autoComplete="username"
                       value={identifiant}
                       onChange={(e) => setIdentifiant(e.target.value)}
                       required
@@ -215,6 +216,7 @@ export default function LoginPage() {
                       <Input
                         id="mot-de-passe"
                         type={motDePasseVisible ? "text" : "password"}
+                        autoComplete="current-password"
                         value={motDePasse}
                         onChange={(e) => setMotDePasse(e.target.value)}
                         required
@@ -265,6 +267,7 @@ export default function LoginPage() {
                     <Label htmlFor="otp-code">Code reçu par email</Label>
                     <Input
                       id="otp-code"
+                      autoComplete="one-time-code"
                       value={code}
                       onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
                       inputMode="numeric"
