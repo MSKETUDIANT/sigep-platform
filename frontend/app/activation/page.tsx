@@ -23,6 +23,7 @@ export default function ActivationPage() {
 function ActivationFormulaire() {
   const searchParams = useSearchParams();
   const [identifiant, setIdentifiant] = useState(searchParams.get("identifiant") ?? "");
+  const [identifiantResolu, setIdentifiantResolu] = useState(searchParams.get("identifiant") ?? "");
   const [code, setCode] = useState("");
   const [nouveauMotDePasse, setNouveauMotDePasse] = useState("");
   const [motDePasseVisible, setMotDePasseVisible] = useState(false);
@@ -42,6 +43,9 @@ function ActivationFormulaire() {
       });
       const donnees = await reponse.json();
       if (!reponse.ok) throw new Error(donnees.identifiant?.[0] || donnees.detail || "Impossible d'envoyer le code.");
+      // La saisie peut être un email — l'identifiant réel renvoyé par l'API
+      // est celui utilisé pour l'étape suivante (vérification du code).
+      setIdentifiantResolu(donnees.identifiant ?? identifiant);
       setEtape("code");
     } catch (err) {
       setErreur(err instanceof Error ? err.message : String(err));
@@ -58,7 +62,7 @@ function ActivationFormulaire() {
       const reponse = await fetch(`${API_URL}/comptes/otp/verifier/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifiant, code, nouveau_mot_de_passe: nouveauMotDePasse }),
+        body: JSON.stringify({ identifiant: identifiantResolu, code, nouveau_mot_de_passe: nouveauMotDePasse }),
       });
       const donnees = await reponse.json();
       if (!reponse.ok) {
@@ -97,7 +101,7 @@ function ActivationFormulaire() {
           {etape === "identifiant" && (
             <form onSubmit={demanderCode} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="act-identifiant">Identifiant</Label>
+                <Label htmlFor="act-identifiant">Identifiant ou email</Label>
                 <Input
                   id="act-identifiant"
                   value={identifiant}
@@ -118,7 +122,7 @@ function ActivationFormulaire() {
             <form onSubmit={verifierCode} className="flex flex-col gap-4">
               <p className="text-sm text-muted-foreground">
                 Un code à 6 chiffres a été envoyé à l&apos;adresse email associée au compte{" "}
-                <strong>{identifiant}</strong>. Il est valable 10 minutes.
+                <strong>{identifiantResolu}</strong>. Il est valable 10 minutes.
               </p>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="act-code">Code reçu</Label>

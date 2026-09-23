@@ -221,15 +221,23 @@ class DemandeOtpSerializer(serializers.Serializer):
     compte fraîchement créé (statut en_attente_activation) et à la
     réinitialisation libre-service d'un mot de passe (compte déjà actif).
     Un compte suspendu/révoqué ne peut pas contourner son blocage par ce
-    biais — il faut repasser par le Super Admin."""
+    biais — il faut repasser par le Super Admin.
+
+    `identifiant` accepte en réalité l'identifiant OU l'email : une personne
+    qui a oublié son mot de passe ne se souvient pas forcément de
+    l'identifiant (généré depuis nom/prénoms, cf. suggererIdentifiant côté
+    frontend) mais connaît son email."""
 
     identifiant = serializers.CharField()
 
     def validate_identifiant(self, valeur):
-        try:
-            utilisateur = Utilisateur.objects.get(identifiant=valeur)
-        except Utilisateur.DoesNotExist:
-            raise serializers.ValidationError("Aucun compte avec cet identifiant.")
+        valeur = valeur.strip()
+        utilisateur = (
+            Utilisateur.objects.filter(identifiant=valeur).first()
+            or Utilisateur.objects.filter(email__iexact=valeur).first()
+        )
+        if not utilisateur:
+            raise serializers.ValidationError("Aucun compte avec cet identifiant ou cet email.")
         if utilisateur.statut in (StatutCompte.SUSPENDU, StatutCompte.REVOQUE):
             raise serializers.ValidationError(
                 "Ce compte est bloqué — contactez le Super Admin."

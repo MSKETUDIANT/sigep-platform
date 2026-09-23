@@ -52,7 +52,10 @@ class DemanderOtpView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         envoyer_otp(serializer.utilisateur)
-        return Response({"detail": "Code envoyé par email."})
+        # L'identifiant réel est renvoyé (saisie possible par email) pour que
+        # le frontend l'utilise à l'étape suivante sans que la personne ait
+        # à le connaître elle-même.
+        return Response({"detail": "Code envoyé par email.", "identifiant": serializer.utilisateur.identifiant})
 
 
 class VerifierOtpView(generics.GenericAPIView):
