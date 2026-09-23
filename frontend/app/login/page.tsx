@@ -194,6 +194,7 @@ export default function LoginPage() {
                     <Label htmlFor="identifiant">Identifiant</Label>
                     <Input
                       id="identifiant"
+                      name="username"
                       type="text"
                       autoComplete="username"
                       value={identifiant}
@@ -215,6 +216,7 @@ export default function LoginPage() {
                     <div className="relative">
                       <Input
                         id="mot-de-passe"
+                        name="current-password"
                         type={motDePasseVisible ? "text" : "password"}
                         autoComplete="current-password"
                         value={motDePasse}
@@ -267,6 +269,7 @@ export default function LoginPage() {
                     <Label htmlFor="otp-code">Code reçu par email</Label>
                     <Input
                       id="otp-code"
+                      name="one-time-code"
                       autoComplete="one-time-code"
                       value={code}
                       onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}

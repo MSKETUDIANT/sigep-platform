@@ -109,6 +109,7 @@ function ActivationFormulaire() {
                 <Label htmlFor="act-identifiant">Identifiant ou email</Label>
                 <Input
                   id="act-identifiant"
+                  name="username"
                   autoComplete="username"
                   value={identifiant}
                   onChange={(e) => setIdentifiant(e.target.value)}
@@ -134,6 +135,7 @@ function ActivationFormulaire() {
                 <Label htmlFor="act-code">Code reçu</Label>
                 <Input
                   id="act-code"
+                  name="one-time-code"
                   autoComplete="one-time-code"
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
@@ -149,6 +151,7 @@ function ActivationFormulaire() {
                 <div className="relative">
                   <Input
                     id="act-mdp"
+                    name="new-password"
                     type={motDePasseVisible ? "text" : "password"}
                     autoComplete="new-password"
                     value={nouveauMotDePasse}
@@ -173,6 +176,7 @@ function ActivationFormulaire() {
                 <Label htmlFor="act-mdp-confirmation">Confirmer le mot de passe</Label>
                 <Input
                   id="act-mdp-confirmation"
+                  name="new-password-confirmation"
                   type={motDePasseVisible ? "text" : "password"}
                   autoComplete="new-password"
                   value={confirmationMotDePasse}
