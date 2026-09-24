@@ -49,7 +49,7 @@ class Region(TimestampedModel):
     CODE_REGEX = RegexValidator(r"^GN-[A-Z]{3}$", "Code région invalide (format attendu : GN-XXX)")
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    code = models.CharField(max_length=10, unique=True, validators=[CODE_REGEX])
+    code = models.CharField(max_length=10, unique=True, blank=True, validators=[CODE_REGEX])
     nom = models.CharField(max_length=120, unique=True)
     type_zone = models.CharField(max_length=30, default="region")  # region | zone_speciale
     chef_lieu = models.CharField(max_length=120, blank=True, null=True)
@@ -66,6 +66,16 @@ class Region(TimestampedModel):
     def __str__(self):
         return self.nom
 
+    def _generer_code(self) -> str:
+        suffixe = generer_suffixe_code(self.nom)
+        base_code = f"GN-{suffixe}"
+        return generer_code_unique(Region, base_code, exclude_pk=self.pk)
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = self._generer_code()
+        super().save(*args, **kwargs)
+
 
 class Prefecture(TimestampedModel):
     """Les 44 préfectures, rattachées à une région — §2.2."""
@@ -76,7 +86,7 @@ class Prefecture(TimestampedModel):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     region = models.ForeignKey(Region, on_delete=models.PROTECT, related_name="prefectures")
-    code = models.CharField(max_length=15, unique=True, validators=[CODE_REGEX])
+    code = models.CharField(max_length=15, unique=True, blank=True, validators=[CODE_REGEX])
     nom = models.CharField(max_length=120)
     chef_lieu = models.CharField(max_length=120, blank=True, null=True)
     actif = models.BooleanField(default=True)
@@ -95,6 +105,17 @@ class Prefecture(TimestampedModel):
 
     def __str__(self):
         return self.nom
+
+    def _generer_code(self) -> str:
+        region_code = code_region_depuis(self.region.code)
+        suffixe = generer_suffixe_code(self.nom)
+        base_code = f"GN-{region_code}-P-{suffixe}"
+        return generer_code_unique(Prefecture, base_code, exclude_pk=self.pk)
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = self._generer_code()
+        super().save(*args, **kwargs)
 
 
 class SousPrefecture(TimestampedModel):

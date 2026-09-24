@@ -7,6 +7,7 @@ class RegionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Region
         fields = "__all__"
+        read_only_fields = ("code",)
 
 
 class PrefectureSerializer(serializers.ModelSerializer):
@@ -15,6 +16,7 @@ class PrefectureSerializer(serializers.ModelSerializer):
     class Meta:
         model = Prefecture
         fields = "__all__"
+        read_only_fields = ("code",)
 
 
 class SousPrefectureSerializer(serializers.ModelSerializer):

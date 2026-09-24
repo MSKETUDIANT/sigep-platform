@@ -154,7 +154,6 @@ function SectionRegions() {
   const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer } =
     useRessourcePaginee<Region>("/territoire/regions/", { recherche });
   const [nom, setNom] = useState("");
-  const [code, setCode] = useState("");
   const [chefLieu, setChefLieu] = useState("");
   const dialogue = useFormulaireDialogue<Record<string, unknown>>((payload) => creer(payload));
 
@@ -192,9 +191,8 @@ function SectionRegions() {
               className="flex flex-col gap-3"
               onSubmit={(e) => {
                 e.preventDefault();
-                dialogue.soumettre({ nom, code, chef_lieu: chefLieu || undefined }, () => {
+                dialogue.soumettre({ nom, chef_lieu: chefLieu || undefined }, () => {
                   setNom("");
-                  setCode("");
                   setChefLieu("");
                 });
               }}
@@ -204,13 +202,10 @@ function SectionRegions() {
                 <Input id="region-nom" value={nom} onChange={(e) => setNom(e.target.value)} required />
               </div>
               <div>
-                <Label htmlFor="region-code">Code (format GN-XXX)</Label>
-                <Input id="region-code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} required />
-              </div>
-              <div>
                 <Label htmlFor="region-chef-lieu">Chef-lieu</Label>
                 <Input id="region-chef-lieu" value={chefLieu} onChange={(e) => setChefLieu(e.target.value)} />
               </div>
+              <p className="text-xs text-muted-foreground">Le code est généré automatiquement.</p>
               {dialogue.erreur && <p className="text-sm text-destructive">{dialogue.erreur}</p>}
               <Button type="submit" disabled={dialogue.enCours}>
                 {dialogue.enCours ? "Création..." : "Créer"}
@@ -229,7 +224,6 @@ function SectionPrefectures() {
     useRessourcePaginee<Prefecture>("/territoire/prefectures/", { recherche });
   const { items: regions } = useRessource<Region>("/territoire/regions/");
   const [nom, setNom] = useState("");
-  const [code, setCode] = useState("");
   const [regionId, setRegionId] = useState("");
   const dialogue = useFormulaireDialogue<Record<string, unknown>>((payload) => creer(payload));
 
@@ -267,9 +261,8 @@ function SectionPrefectures() {
               className="flex flex-col gap-3"
               onSubmit={(e) => {
                 e.preventDefault();
-                dialogue.soumettre({ nom, code, region: regionId }, () => {
+                dialogue.soumettre({ nom, region: regionId }, () => {
                   setNom("");
-                  setCode("");
                   setRegionId("");
                 });
               }}
@@ -277,10 +270,6 @@ function SectionPrefectures() {
               <div>
                 <Label htmlFor="pref-nom">Nom</Label>
                 <Input id="pref-nom" value={nom} onChange={(e) => setNom(e.target.value)} required />
-              </div>
-              <div>
-                <Label htmlFor="pref-code">Code (format GN-XXX-P-XXXX)</Label>
-                <Input id="pref-code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} required />
               </div>
               <div>
                 <Label htmlFor="pref-region">Région</Label>
@@ -293,6 +282,7 @@ function SectionPrefectures() {
                   ))}
                 </SelectNatif>
               </div>
+              <p className="text-xs text-muted-foreground">Le code est généré automatiquement.</p>
               {dialogue.erreur && <p className="text-sm text-destructive">{dialogue.erreur}</p>}
               <Button type="submit" disabled={dialogue.enCours}>
                 {dialogue.enCours ? "Création..." : "Créer"}
