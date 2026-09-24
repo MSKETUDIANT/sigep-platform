@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, School } from "lucide-react";
+import { Pencil, Plus, School } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ type Ecole = {
   region_nom: string;
   type_ecole: string;
   type_ecole_display: string;
+  langue_enseignement: string;
   langue_enseignement_display: string;
   etat_general: string;
   etat_general_display: string;
@@ -63,6 +64,12 @@ const FILTRES_ETAT = [
   { valeur: "critique" as const, label: "Critique" },
 ];
 
+const ETATS_ECOLE = [
+  { valeur: "conforme", label: "Conforme" },
+  { valeur: "a_renover", label: "À rénover" },
+  { valeur: "critique", label: "Critique" },
+];
+
 function EtatBadge({ etat, label }: { etat: string; label: string }) {
   // Légende officielle §3 du dossier fonctionnel : vert = conforme,
   // orange = à rénover, rouge = critique.
@@ -75,7 +82,7 @@ export default function EcolesPage() {
   const peutCreer = !!utilisateur && PROFILS_CREATION_ECOLE.includes(utilisateur.profil);
   const [recherche, setRecherche] = useState("");
   const [filtreEtat, setFiltreEtat] = useState<(typeof FILTRES_ETAT)[number]["valeur"]>("Tous");
-  const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer } =
+  const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer, mettreAJour } =
     useRessourcePaginee<Ecole>("/etablissements/ecoles/", {
       recherche,
       filtres: { etat_general: filtreEtat === "Tous" ? undefined : filtreEtat },
@@ -150,6 +157,16 @@ export default function EcolesPage() {
         { label: "Langue", rendu: (e) => e.langue_enseignement_display },
         { label: "État", rendu: (e) => <EtatBadge etat={e.etat_general} label={e.etat_general_display} /> },
         { label: "Élèves", rendu: (e) => e.nombre_eleves },
+        ...(peutCreer
+          ? [
+              {
+                label: "Actions",
+                rendu: (e: Ecole) => (
+                  <DialogueModifierEcole ecole={e} onModifie={(payload) => mettreAJour(e.id, payload)} />
+                ),
+              },
+            ]
+          : []),
       ]}
       actionsEnTete={
         peutCreer ? (
@@ -271,5 +288,107 @@ export default function EcolesPage() {
         ) : undefined
       }
     />
+  );
+}
+
+function DialogueModifierEcole({
+  ecole,
+  onModifie,
+}: {
+  ecole: Ecole;
+  onModifie: (payload: Record<string, unknown>) => Promise<unknown>;
+}) {
+  const [ouvert, setOuvert] = useState(false);
+  const [nom, setNom] = useState(ecole.nom);
+  const [typeEcole, setTypeEcole] = useState(ecole.type_ecole);
+  const [langue, setLangue] = useState(ecole.langue_enseignement);
+  const [etatGeneral, setEtatGeneral] = useState(ecole.etat_general);
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  async function soumettre(e: React.FormEvent) {
+    e.preventDefault();
+    setEnCours(true);
+    setErreur(null);
+    try {
+      await onModifie({ nom, type_ecole: typeEcole, langue_enseignement: langue, etat_general: etatGeneral });
+      setOuvert(false);
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <Dialog
+      open={ouvert}
+      onOpenChange={(v) => {
+        setOuvert(v);
+        if (v) {
+          setNom(ecole.nom);
+          setTypeEcole(ecole.type_ecole);
+          setLangue(ecole.langue_enseignement);
+          setEtatGeneral(ecole.etat_general);
+          setErreur(null);
+        }
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button size="sm" variant="secondary">
+          <Pencil className="mr-1.5 h-4 w-4" />
+          Modifier
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Modifier {ecole.nom}</DialogTitle>
+        </DialogHeader>
+        <form className="flex flex-col gap-3" onSubmit={soumettre}>
+          <div>
+            <Label htmlFor="ecole-mod-nom">Nom</Label>
+            <Input id="ecole-mod-nom" value={nom} onChange={(e) => setNom(e.target.value)} required />
+          </div>
+          <div>
+            <Label htmlFor="ecole-mod-type">Statut</Label>
+            <SelectNatif id="ecole-mod-type" value={typeEcole} onChange={(e) => setTypeEcole(e.target.value)}>
+              {TYPES_ECOLE.map((t) => (
+                <option key={t.valeur} value={t.valeur}>
+                  {t.label}
+                </option>
+              ))}
+            </SelectNatif>
+          </div>
+          <div>
+            <Label htmlFor="ecole-mod-langue">Langue d&apos;enseignement</Label>
+            <SelectNatif id="ecole-mod-langue" value={langue} onChange={(e) => setLangue(e.target.value)}>
+              {LANGUES.map((l) => (
+                <option key={l.valeur} value={l.valeur}>
+                  {l.label}
+                </option>
+              ))}
+            </SelectNatif>
+          </div>
+          <div>
+            <Label htmlFor="ecole-mod-etat">État général</Label>
+            <SelectNatif id="ecole-mod-etat" value={etatGeneral} onChange={(e) => setEtatGeneral(e.target.value)}>
+              {ETATS_ECOLE.map((et) => (
+                <option key={et.valeur} value={et.valeur}>
+                  {et.label}
+                </option>
+              ))}
+            </SelectNatif>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Le rattachement territorial (sous-préfecture/quartier) et le code école ne peuvent pas être
+            modifiés ici.
+          </p>
+          {erreur && <p className="text-sm text-destructive">{erreur}</p>}
+          <Button type="submit" disabled={enCours}>
+            {enCours ? "Enregistrement..." : "Enregistrer"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

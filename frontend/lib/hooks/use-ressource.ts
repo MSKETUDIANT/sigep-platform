@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { apiFetch, getToken } from "@/lib/api";
+import { apiFetch, extraireErreurApi, getToken } from "@/lib/api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -54,7 +54,7 @@ export function useRessource<T>(endpoint: string) {
     const reponse = await apiFetch(endpoint, { method: "POST", body: JSON.stringify(payload) });
     const donnees = await reponse.json();
     if (!reponse.ok) {
-      throw new Error(typeof donnees === "object" ? JSON.stringify(donnees) : String(donnees));
+      throw new Error(extraireErreurApi(donnees));
     }
     await recharger();
     return donnees as T;
@@ -64,7 +64,7 @@ export function useRessource<T>(endpoint: string) {
     const reponse = await apiFetch(chemin, { method: "POST", body: JSON.stringify(payload) });
     const donnees = await reponse.json();
     if (!reponse.ok) {
-      throw new Error(typeof donnees === "object" ? JSON.stringify(donnees) : String(donnees));
+      throw new Error(extraireErreurApi(donnees));
     }
     await recharger();
     return donnees;
@@ -74,7 +74,7 @@ export function useRessource<T>(endpoint: string) {
     const reponse = await apiFetch(`${endpoint}${id}/`, { method: "PATCH", body: JSON.stringify(payload) });
     const donnees = await reponse.json();
     if (!reponse.ok) {
-      throw new Error(typeof donnees === "object" ? JSON.stringify(donnees) : String(donnees));
+      throw new Error(extraireErreurApi(donnees));
     }
     await recharger();
     return donnees as T;
@@ -152,7 +152,7 @@ export function useRessourcePaginee<T>(endpoint: string, options: OptionsRessour
     const reponse = await apiFetch(endpoint, { method: "POST", body: JSON.stringify(payload) });
     const donnees = await reponse.json();
     if (!reponse.ok) {
-      throw new Error(typeof donnees === "object" ? JSON.stringify(donnees) : String(donnees));
+      throw new Error(extraireErreurApi(donnees));
     }
     await recharger();
     return donnees as T;
@@ -162,7 +162,7 @@ export function useRessourcePaginee<T>(endpoint: string, options: OptionsRessour
     const reponse = await apiFetch(chemin, { method: "POST", body: JSON.stringify(payload) });
     const donnees = await reponse.json();
     if (!reponse.ok) {
-      throw new Error(typeof donnees === "object" ? JSON.stringify(donnees) : String(donnees));
+      throw new Error(extraireErreurApi(donnees));
     }
     await recharger();
     return donnees;
@@ -172,7 +172,7 @@ export function useRessourcePaginee<T>(endpoint: string, options: OptionsRessour
     const reponse = await apiFetch(`${endpoint}${id}/`, { method: "PATCH", body: JSON.stringify(payload) });
     const donnees = await reponse.json();
     if (!reponse.ok) {
-      throw new Error(typeof donnees === "object" ? JSON.stringify(donnees) : String(donnees));
+      throw new Error(extraireErreurApi(donnees));
     }
     await recharger();
     return donnees as T;
