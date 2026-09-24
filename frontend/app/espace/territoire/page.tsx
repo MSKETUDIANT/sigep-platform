@@ -59,14 +59,31 @@ export default function TerritoirePage() {
   );
 }
 
-const LIBELLES_STATUT: Record<string, string> = {
+// Sous-préfecture (schéma A) uniquement : "En attente de DSE" n'a de sens que
+// pour ce niveau, le DSE étant rattaché à la sous-préfecture (§17 du dossier).
+const LIBELLES_STATUT_SOUS_PREFECTURE: Record<string, string> = {
   active: "Active",
   en_attente: "En attente de DSE",
   suspendue: "Suspendue",
 };
 
+// Quartier (schéma B) : seulement 2 statuts (§9 du dossier) — pas de notion de
+// DSE, rôle sans rapport avec un quartier.
+const LIBELLES_STATUT_QUARTIER: Record<string, string> = {
+  actif: "Actif",
+  suspendu: "Suspendu",
+};
+
 /** US-1.7 : changer le statut d'une unité territoriale directement depuis le tableau. */
-function StatutModifiable({ valeur, onChange }: { valeur: string; onChange: (v: string) => Promise<unknown> }) {
+function StatutModifiable({
+  valeur,
+  onChange,
+  libelles,
+}: {
+  valeur: string;
+  onChange: (v: string) => Promise<unknown>;
+  libelles: Record<string, string>;
+}) {
   const [enCours, setEnCours] = useState(false);
 
   async function gererChangement(e: React.ChangeEvent<HTMLSelectElement>) {
@@ -80,7 +97,7 @@ function StatutModifiable({ valeur, onChange }: { valeur: string; onChange: (v: 
 
   return (
     <SelectNatif value={valeur} onChange={gererChangement} disabled={enCours} className="h-8 w-44 text-xs">
-      {Object.entries(LIBELLES_STATUT).map(([v, label]) => (
+      {Object.entries(libelles).map(([v, label]) => (
         <option key={v} value={v}>
           {label}
         </option>
@@ -288,16 +305,23 @@ function SectionPrefectures() {
   );
 }
 
-const FILTRES_STATUT_TERRITOIRE = [
+const FILTRES_STATUT_SOUS_PREFECTURE = [
   { valeur: "Tous" as const, label: "Tous" },
   { valeur: "active" as const, label: "Active" },
   { valeur: "en_attente" as const, label: "En attente de DSE" },
   { valeur: "suspendue" as const, label: "Suspendue" },
 ];
 
+const FILTRES_STATUT_QUARTIER = [
+  { valeur: "Tous" as const, label: "Tous" },
+  { valeur: "actif" as const, label: "Actif" },
+  { valeur: "suspendu" as const, label: "Suspendu" },
+];
+
 function SectionSousPrefectures() {
   const [recherche, setRecherche] = useState("");
-  const [filtreStatut, setFiltreStatut] = useState<(typeof FILTRES_STATUT_TERRITOIRE)[number]["valeur"]>("Tous");
+  const [filtreStatut, setFiltreStatut] =
+    useState<(typeof FILTRES_STATUT_SOUS_PREFECTURE)[number]["valeur"]>("Tous");
   const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer, mettreAJour } =
     useRessourcePaginee<SousPrefecture>("/territoire/sous-prefectures/", {
       recherche,
@@ -323,7 +347,7 @@ function SectionSousPrefectures() {
       filtres={
         <>
           <Input placeholder="Rechercher une sous-préfecture..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />
-          <PastillesFiltre options={FILTRES_STATUT_TERRITOIRE} valeur={filtreStatut} onChange={setFiltreStatut} />
+          <PastillesFiltre options={FILTRES_STATUT_SOUS_PREFECTURE} valeur={filtreStatut} onChange={setFiltreStatut} />
         </>
       }
       colonnes={[
@@ -333,7 +357,11 @@ function SectionSousPrefectures() {
         {
           label: "Statut",
           rendu: (s) => (
-            <StatutModifiable valeur={s.statut} onChange={(v) => mettreAJour(s.id, { statut: v })} />
+            <StatutModifiable
+              valeur={s.statut}
+              onChange={(v) => mettreAJour(s.id, { statut: v })}
+              libelles={LIBELLES_STATUT_SOUS_PREFECTURE}
+            />
           ),
         },
         { label: "Écoles", rendu: (s) => s.nombre_ecoles },
@@ -496,7 +524,7 @@ function SectionCommunes() {
 
 function SectionQuartiers() {
   const [recherche, setRecherche] = useState("");
-  const [filtreStatut, setFiltreStatut] = useState<(typeof FILTRES_STATUT_TERRITOIRE)[number]["valeur"]>("Tous");
+  const [filtreStatut, setFiltreStatut] = useState<(typeof FILTRES_STATUT_QUARTIER)[number]["valeur"]>("Tous");
   const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer, mettreAJour } =
     useRessourcePaginee<Quartier>("/territoire/quartiers/", {
       recherche,
@@ -522,7 +550,7 @@ function SectionQuartiers() {
       filtres={
         <>
           <Input placeholder="Rechercher un quartier..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />
-          <PastillesFiltre options={FILTRES_STATUT_TERRITOIRE} valeur={filtreStatut} onChange={setFiltreStatut} />
+          <PastillesFiltre options={FILTRES_STATUT_QUARTIER} valeur={filtreStatut} onChange={setFiltreStatut} />
         </>
       }
       colonnes={[
@@ -532,7 +560,11 @@ function SectionQuartiers() {
         {
           label: "Statut",
           rendu: (q) => (
-            <StatutModifiable valeur={q.statut} onChange={(v) => mettreAJour(q.id, { statut: v })} />
+            <StatutModifiable
+              valeur={q.statut}
+              onChange={(v) => mettreAJour(q.id, { statut: v })}
+              libelles={LIBELLES_STATUT_QUARTIER}
+            />
           ),
         },
       ]}

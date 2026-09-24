@@ -18,9 +18,21 @@ from .utils import code_region_depuis, generer_code_unique, generer_suffixe_code
 
 
 class StatutUniteTerritoriale(models.TextChoices):
+    """Sous-préfecture uniquement (schéma A) — "En attente de DSE" n'a de sens
+    que pour ce niveau, le DSE étant rattaché à la sous-préfecture (§17 du
+    dossier). Voir StatutQuartier pour le schéma B, qui n'a pas cette notion."""
+
     ACTIVE = "active", "Active"
     EN_ATTENTE = "en_attente", "En attente de DSE"
     SUSPENDUE = "suspendue", "Suspendue"
+
+
+class StatutQuartier(models.TextChoices):
+    """Quartier (schéma B) — §9 du dossier : seulement 2 statuts, pas de notion
+    de DSE (rôle sous-préfectoral, sans rapport avec un quartier)."""
+
+    ACTIF = "actif", "Actif"
+    SUSPENDU = "suspendu", "Suspendu"
 
 
 class TimestampedModel(models.Model):
@@ -190,9 +202,7 @@ class Quartier(TimestampedModel):
     commune = models.ForeignKey(Commune, on_delete=models.PROTECT, related_name="quartiers")
     code = models.CharField(max_length=25, unique=True, blank=True, validators=[CODE_REGEX])
     nom = models.CharField(max_length=120)
-    statut = models.CharField(
-        max_length=20, choices=StatutUniteTerritoriale.choices, default=StatutUniteTerritoriale.ACTIVE
-    )
+    statut = models.CharField(max_length=20, choices=StatutQuartier.choices, default=StatutQuartier.ACTIF)
     cree_par = models.ForeignKey(
         "usr.Utilisateur", on_delete=models.SET_NULL, null=True, blank=True, related_name="quartiers_crees"
     )
