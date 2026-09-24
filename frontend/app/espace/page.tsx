@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import {
   Building2,
+  CalendarCheck,
   Clock,
   GraduationCap,
   Landmark,
   MapPin,
   Navigation,
   Map as MapIcon,
+  NotebookPen,
   School,
   Users,
   Wrench,
@@ -16,9 +18,14 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { SelectNatif } from "@/components/ui/select-natif";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, extraireErreurApi } from "@/lib/api";
 import { LIBELLES_PROFIL, useUtilisateurCourant, type Utilisateur } from "@/lib/contexte-utilisateur";
+import { useRessource } from "@/lib/hooks/use-ressource";
 import { cn } from "@/lib/utils";
 
 // Profils avec périmètre de gestion (national ou territorial) : leurs comptages
@@ -233,6 +240,7 @@ function EspaceEnseignant() {
                   <TableHead>Matière</TableHead>
                   <TableHead>Effectif</TableHead>
                   <TableHead>Horaire / semaine</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -243,6 +251,12 @@ function EspaceEnseignant() {
                     <TableCell>{i.matiere}</TableCell>
                     <TableCell>{effectifs[`${i.ecole}-${i.classe}`] ?? "…"}</TableCell>
                     <TableCell>{i.volume_horaire_hebdo}h</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <DialogueSaisirNotes intervention={i} />
+                        <DialogueFaireAppel intervention={i} />
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -252,10 +266,316 @@ function EspaceEnseignant() {
       </Card>
 
       <p className="text-xs text-muted-foreground">
-        Saisie des notes, appel et demande de mutation seront disponibles dans les prochains sprints
-        (Pédagogie, puis circuit de validation).
+        Demande de mutation/transfert disponible avec le circuit de validation (prochain sprint).
       </p>
     </div>
+  );
+}
+
+const TRIMESTRES = [
+  { valeur: "T1", label: "1er trimestre" },
+  { valeur: "T2", label: "2e trimestre" },
+  { valeur: "T3", label: "3e trimestre" },
+];
+
+type EleveLeger = { id: string; nom: string; prenoms: string };
+type NoteExistante = { id: string; eleve: string; type_evaluation: string; valeur: string; verrouille: boolean };
+
+function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [trimestre, setTrimestre] = useState("T1");
+  const [typeEvaluation, setTypeEvaluation] = useState("Devoir 1");
+  const [anneeAcademique] = useState("2026-2027");
+  const [valeurs, setValeurs] = useState<Record<string, string>>({});
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [transmis, setTransmis] = useState<string | null>(null);
+
+  const { items: eleves } = useRessource<EleveLeger>(
+    `/pedagogie/eleves/?ecole=${intervention.ecole}&classe=${intervention.classe}`
+  );
+  const { items: notesExistantes, recharger: rechargerNotes } = useRessource<NoteExistante>(
+    `/pedagogie/notes/?matiere=${encodeURIComponent(intervention.matiere)}&trimestre=${trimestre}&annee_academique=${anneeAcademique}`
+  );
+
+  const noteParEleve = new Map(
+    notesExistantes.filter((n) => n.type_evaluation === typeEvaluation).map((n) => [n.eleve, n])
+  );
+
+  useEffect(() => {
+    const initial: Record<string, string> = {};
+    eleves.forEach((e) => {
+      const existante = noteParEleve.get(e.id);
+      if (existante) initial[e.id] = existante.valeur;
+    });
+    setValeurs(initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eleves, notesExistantes, typeEvaluation]);
+
+  async function enregistrer() {
+    setEnCours(true);
+    setErreur(null);
+    setTransmis(null);
+    try {
+      for (const e of eleves) {
+        const valeur = valeurs[e.id];
+        if (valeur === undefined || valeur === "") continue;
+        const existante = noteParEleve.get(e.id);
+        const payload = {
+          eleve: e.id,
+          matiere: intervention.matiere,
+          trimestre,
+          type_evaluation: typeEvaluation,
+          valeur,
+          annee_academique: anneeAcademique,
+        };
+        const reponse = existante
+          ? await apiFetch(`/pedagogie/notes/${existante.id}/`, { method: "PATCH", body: JSON.stringify(payload) })
+          : await apiFetch("/pedagogie/notes/", { method: "POST", body: JSON.stringify(payload) });
+        if (!reponse.ok) throw new Error(extraireErreurApi(await reponse.json()));
+      }
+      await rechargerNotes();
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  async function transmettre() {
+    setEnCours(true);
+    setErreur(null);
+    try {
+      const reponse = await apiFetch("/pedagogie/notes/transmettre/", {
+        method: "POST",
+        body: JSON.stringify({
+          classe: intervention.classe,
+          matiere: intervention.matiere,
+          trimestre,
+          annee_academique: anneeAcademique,
+        }),
+      });
+      const donnees = await reponse.json();
+      if (!reponse.ok) throw new Error(extraireErreurApi(donnees));
+      setTransmis(donnees.detail);
+      await rechargerNotes();
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  const uneNoteVerrouillee = notesExistantes.some((n) => n.verrouille);
+
+  return (
+    <Dialog open={ouvert} onOpenChange={setOuvert}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="secondary">
+          <NotebookPen className="mr-1.5 h-4 w-4" />
+          Notes
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>
+            Notes — {intervention.matiere} ({intervention.classe_libelle})
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="notes-trimestre">Trimestre</Label>
+              <SelectNatif id="notes-trimestre" value={trimestre} onChange={(e) => setTrimestre(e.target.value)}>
+                {TRIMESTRES.map((t) => (
+                  <option key={t.valeur} value={t.valeur}>
+                    {t.label}
+                  </option>
+                ))}
+              </SelectNatif>
+            </div>
+            <div>
+              <Label htmlFor="notes-evaluation">Évaluation</Label>
+              <Input
+                id="notes-evaluation"
+                value={typeEvaluation}
+                onChange={(e) => setTypeEvaluation(e.target.value)}
+                placeholder="Devoir 1, Composition..."
+              />
+            </div>
+          </div>
+
+          {eleves.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucun élève dans cette classe pour l&apos;instant.</p>
+          ) : (
+            <div className="max-h-72 overflow-y-auto rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Élève</TableHead>
+                    <TableHead className="w-24">Note /20</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {eleves.map((e) => {
+                    const existante = noteParEleve.get(e.id);
+                    return (
+                      <TableRow key={e.id}>
+                        <TableCell>
+                          {e.prenoms} {e.nom}
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="20"
+                            step="0.5"
+                            className="h-8 w-20"
+                            value={valeurs[e.id] ?? ""}
+                            disabled={existante?.verrouille}
+                            onChange={(ev) => setValeurs((v) => ({ ...v, [e.id]: ev.target.value }))}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {uneNoteVerrouillee && (
+            <p className="text-xs text-accent">
+              Certaines notes de cette évaluation sont déjà transmises (verrouillées) — non modifiables ici.
+            </p>
+          )}
+          {transmis && <p className="text-sm text-succes">{transmis}</p>}
+          {erreur && <p className="text-sm text-destructive">{erreur}</p>}
+          <div className="flex gap-2">
+            <Button onClick={enregistrer} disabled={enCours} className="flex-1">
+              {enCours ? "Enregistrement..." : "Enregistrer"}
+            </Button>
+            <Button onClick={transmettre} disabled={enCours} variant="secondary" className="flex-1">
+              Transmettre
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DialogueFaireAppel({ intervention }: { intervention: Intervention }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [presences, setPresences] = useState<Record<string, boolean>>({});
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [succes, setSucces] = useState<string | null>(null);
+
+  const { items: eleves } = useRessource<EleveLeger>(
+    `/pedagogie/eleves/?ecole=${intervention.ecole}&classe=${intervention.classe}`
+  );
+  const { items: presencesExistantes, recharger: rechargerPresences } = useRessource<{
+    id: string;
+    eleve: string;
+    present: boolean;
+  }>(`/pedagogie/presences/?classe=${intervention.classe}&matiere=${encodeURIComponent(intervention.matiere)}&date=${date}`);
+
+  const presenceParEleve = new Map(presencesExistantes.map((p) => [p.eleve, p]));
+
+  useEffect(() => {
+    const initial: Record<string, boolean> = {};
+    eleves.forEach((e) => {
+      const existante = presenceParEleve.get(e.id);
+      initial[e.id] = existante ? existante.present : true;
+    });
+    setPresences(initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eleves, presencesExistantes]);
+
+  async function enregistrer() {
+    setEnCours(true);
+    setErreur(null);
+    setSucces(null);
+    try {
+      for (const e of eleves) {
+        const existante = presenceParEleve.get(e.id);
+        const present = presences[e.id] ?? true;
+        const payload = { eleve: e.id, classe: intervention.classe, matiere: intervention.matiere, date, present };
+        const reponse = existante
+          ? await apiFetch(`/pedagogie/presences/${existante.id}/`, { method: "PATCH", body: JSON.stringify(payload) })
+          : await apiFetch("/pedagogie/presences/", { method: "POST", body: JSON.stringify(payload) });
+        if (!reponse.ok) throw new Error(extraireErreurApi(await reponse.json()));
+      }
+      setSucces("Appel enregistré.");
+      await rechargerPresences();
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <Dialog open={ouvert} onOpenChange={setOuvert}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="secondary">
+          <CalendarCheck className="mr-1.5 h-4 w-4" />
+          Appel
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>
+            Appel — {intervention.matiere} ({intervention.classe_libelle})
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-3">
+          <div>
+            <Label htmlFor="appel-date">Date</Label>
+            <Input id="appel-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+
+          {eleves.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucun élève dans cette classe pour l&apos;instant.</p>
+          ) : (
+            <div className="max-h-72 overflow-y-auto rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Élève</TableHead>
+                    <TableHead className="w-24">Présent</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {eleves.map((e) => (
+                    <TableRow key={e.id}>
+                      <TableCell>
+                        {e.prenoms} {e.nom}
+                      </TableCell>
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={presences[e.id] ?? true}
+                          onChange={(ev) => setPresences((p) => ({ ...p, [e.id]: ev.target.checked }))}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {succes && <p className="text-sm text-succes">{succes}</p>}
+          {erreur && <p className="text-sm text-destructive">{erreur}</p>}
+          <Button onClick={enregistrer} disabled={enCours}>
+            {enCours ? "Enregistrement..." : "Enregistrer l'appel"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
