@@ -46,9 +46,6 @@ type Quartier = { id: string; nom: string };
 const TYPES_ECOLE = [
   { valeur: "publique", label: "Publique" },
   { valeur: "privee", label: "Privée" },
-  { valeur: "communautaire", label: "Communautaire" },
-  { valeur: "franco_arabe", label: "Franco-arabe" },
-  { valeur: "confessionnelle", label: "Confessionnelle" },
 ];
 
 const LANGUES = [
@@ -149,7 +146,7 @@ export default function EcolesPage() {
           label: "Rattachement",
           rendu: (e) => e.sous_prefecture_nom ?? e.quartier_nom ?? "—",
         },
-        { label: "Type", rendu: (e) => e.type_ecole_display },
+        { label: "Statut", rendu: (e) => e.type_ecole_display },
         { label: "Langue", rendu: (e) => e.langue_enseignement_display },
         { label: "État", rendu: (e) => <EtatBadge etat={e.etat_general} label={e.etat_general_display} /> },
         { label: "Élèves", rendu: (e) => e.nombre_eleves },
@@ -240,7 +237,7 @@ export default function EcolesPage() {
               )}
 
               <div>
-                <Label htmlFor="ecole-type">Type</Label>
+                <Label htmlFor="ecole-type">Statut</Label>
                 <SelectNatif id="ecole-type" value={typeEcole} onChange={(e) => setTypeEcole(e.target.value)}>
                   {TYPES_ECOLE.map((t) => (
                     <option key={t.valeur} value={t.valeur}>

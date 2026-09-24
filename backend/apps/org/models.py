@@ -119,11 +119,11 @@ class SchemaIdentification(models.TextChoices):
 
 
 class TypeEcole(models.TextChoices):
+    """Statut de l'école — §2.1 du dossier fonctionnel : uniquement public ou
+    privé, aucune sous-catégorie supplémentaire."""
+
     PUBLIQUE = "publique", "Publique"
     PRIVEE = "privee", "Privée"
-    COMMUNAUTAIRE = "communautaire", "Communautaire"
-    FRANCO_ARABE = "franco_arabe", "Franco-arabe"
-    CONFESSIONNELLE = "confessionnelle", "Confessionnelle"
 
 
 class LangueEnseignement(models.TextChoices):
