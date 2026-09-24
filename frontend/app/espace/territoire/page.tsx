@@ -409,7 +409,6 @@ function SectionCommunes() {
     });
   const { items: regions } = useRessource<Region>("/territoire/regions/");
   const [nom, setNom] = useState("");
-  const [code, setCode] = useState("");
   const [regionId, setRegionId] = useState("");
   const [typeCommune, setTypeCommune] = useState("urbaine");
   const dialogue = useFormulaireDialogue<Record<string, unknown>>((payload) => creer(payload));
@@ -454,9 +453,8 @@ function SectionCommunes() {
               className="flex flex-col gap-3"
               onSubmit={(e) => {
                 e.preventDefault();
-                dialogue.soumettre({ nom, code, region: regionId, type_commune: typeCommune }, () => {
+                dialogue.soumettre({ nom, region: regionId, type_commune: typeCommune }, () => {
                   setNom("");
-                  setCode("");
                   setRegionId("");
                 });
               }}
@@ -464,10 +462,6 @@ function SectionCommunes() {
               <div>
                 <Label htmlFor="com-nom">Nom</Label>
                 <Input id="com-nom" value={nom} onChange={(e) => setNom(e.target.value)} required />
-              </div>
-              <div>
-                <Label htmlFor="com-code">Code (format GN-XXX-C-XXXX)</Label>
-                <Input id="com-code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} required />
               </div>
               <div>
                 <Label htmlFor="com-region">Région</Label>
@@ -487,6 +481,7 @@ function SectionCommunes() {
                   <option value="rurale">Rurale</option>
                 </SelectNatif>
               </div>
+              <p className="text-xs text-muted-foreground">Le code est généré automatiquement.</p>
               {dialogue.erreur && <p className="text-sm text-destructive">{dialogue.erreur}</p>}
               <Button type="submit" disabled={dialogue.enCours}>
                 {dialogue.enCours ? "Création..." : "Créer"}

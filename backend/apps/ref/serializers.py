@@ -33,6 +33,7 @@ class CommuneSerializer(serializers.ModelSerializer):
     class Meta:
         model = Commune
         fields = "__all__"
+        read_only_fields = ("code",)
 
 
 class QuartierSerializer(serializers.ModelSerializer):

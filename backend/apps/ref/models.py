@@ -149,7 +149,7 @@ class Commune(TimestampedModel):
     prefecture = models.ForeignKey(
         Prefecture, on_delete=models.PROTECT, related_name="communes", null=True, blank=True
     )  # NULL pour les communes de Conakry (zone spéciale, hors schéma A)
-    code = models.CharField(max_length=20, unique=True, validators=[CODE_REGEX])
+    code = models.CharField(max_length=20, unique=True, blank=True, validators=[CODE_REGEX])
     nom = models.CharField(max_length=120)
     type_commune = models.CharField(max_length=20, default="urbaine")  # urbaine | rurale
     actif = models.BooleanField(default=True)
@@ -165,6 +165,17 @@ class Commune(TimestampedModel):
 
     def __str__(self):
         return self.nom
+
+    def _generer_code(self) -> str:
+        region_code = code_region_depuis(self.region.code)
+        suffixe = generer_suffixe_code(self.nom)
+        base_code = f"GN-{region_code}-C-{suffixe}"
+        return generer_code_unique(Commune, base_code, exclude_pk=self.pk)
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = self._generer_code()
+        super().save(*args, **kwargs)
 
 
 class Quartier(TimestampedModel):
