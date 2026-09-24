@@ -251,21 +251,28 @@ function EspaceEnseignant() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {interventions.map((i) => (
-                  <TableRow key={i.id}>
-                    <TableCell>{i.ecole_nom}</TableCell>
-                    <TableCell>{i.classe_libelle}</TableCell>
-                    <TableCell>{i.matiere}</TableCell>
-                    <TableCell>{effectifs[`${i.ecole}-${i.classe}`] ?? "…"}</TableCell>
-                    <TableCell>{i.volume_horaire_hebdo}h</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <DialogueSaisirNotes intervention={i} />
-                        <DialogueFaireAppel intervention={i} />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {interventions.map((i) => {
+                  const effectif = effectifs[`${i.ecole}-${i.classe}`];
+                  return (
+                    <TableRow key={i.id}>
+                      <TableCell>{i.ecole_nom}</TableCell>
+                      <TableCell>{i.classe_libelle}</TableCell>
+                      <TableCell>{i.matiere}</TableCell>
+                      <TableCell>{effectif ?? "…"}</TableCell>
+                      <TableCell>{i.volume_horaire_hebdo}h</TableCell>
+                      <TableCell>
+                        {effectif === 0 ? (
+                          <span className="text-xs text-muted-foreground">Aucun élève inscrit</span>
+                        ) : (
+                          <div className="flex gap-2">
+                            <DialogueSaisirNotes intervention={i} />
+                            <DialogueFaireAppel intervention={i} />
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
