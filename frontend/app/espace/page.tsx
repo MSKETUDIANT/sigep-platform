@@ -158,9 +158,16 @@ type Intervention = {
   ecole_nom: string;
   classe: string;
   classe_libelle: string;
+  cycle_code: string;
   matiere: string;
   volume_horaire_hebdo: string;
 };
+
+// §7.1 : barème 1re-6e année (Primaire, CP1..CM2) = /10, 7e à Terminale
+// (Collège/Lycée) = /20 — miroir de ped.services.bareme() côté backend.
+function baremeIntervention(intervention: Intervention): number {
+  return intervention.cycle_code === "primaire" ? 10 : 20;
+}
 
 function EspaceEnseignant() {
   const [interventions, setInterventions] = useState<Intervention[]>([]);
@@ -282,6 +289,7 @@ type EleveLeger = { id: string; nom: string; prenoms: string };
 type NoteExistante = { id: string; eleve: string; type_evaluation: string; valeur: string; verrouille: boolean };
 
 function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
+  const bareme = baremeIntervention(intervention);
   const [ouvert, setOuvert] = useState(false);
   const [trimestre, setTrimestre] = useState("T1");
   const [typeEvaluation, setTypeEvaluation] = useState("Devoir 1");
@@ -379,7 +387,7 @@ function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            Notes — {intervention.matiere} ({intervention.classe_libelle})
+            Notes — {intervention.matiere} ({intervention.classe_libelle}, /{bareme})
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3">
@@ -413,7 +421,7 @@ function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Élève</TableHead>
-                    <TableHead className="w-24">Note /20</TableHead>
+                    <TableHead className="w-24">Note /{bareme}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -428,7 +436,7 @@ function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
                           <Input
                             type="number"
                             min="0"
-                            max="20"
+                            max={bareme}
                             step="0.5"
                             className="h-8 w-20"
                             value={valeurs[e.id] ?? ""}

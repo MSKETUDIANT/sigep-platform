@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from . import services
 from .models import Deliberation, Eleve, Filiation, InscriptionExamen, Note, Presence
 
 
@@ -15,6 +16,10 @@ class FiliationSerializer(serializers.ModelSerializer):
 class EleveSerializer(serializers.ModelSerializer):
     ecole_nom = serializers.CharField(source="ecole.nom", read_only=True)
     classe_libelle = serializers.CharField(source="classe.libelle", read_only=True)
+    # §7.1 : barème 1re-6e (Primaire) = /10, 7e-Terminale (Collège/Lycée) = /20 —
+    # exposé pour que le frontend affiche/valide le bon barème sans dupliquer
+    # la règle (voir aussi InterventionEnseignantSerializer.cycle_code).
+    cycle_code = serializers.CharField(source="classe.cycle.code", read_only=True)
     statut_display = serializers.CharField(source="get_statut_display", read_only=True)
     sexe_display = serializers.CharField(source="get_sexe_display", read_only=True)
     filiations = FiliationSerializer(many=True, read_only=True)
@@ -24,7 +29,7 @@ class EleveSerializer(serializers.ModelSerializer):
         fields = [
             "id", "matricule", "nom", "prenoms", "sexe", "sexe_display",
             "date_naissance", "lieu_naissance", "photo_url",
-            "ecole", "ecole_nom", "classe", "classe_libelle", "annee_academique",
+            "ecole", "ecole_nom", "classe", "classe_libelle", "cycle_code", "annee_academique",
             "statut", "statut_display", "filiations", "cree_le", "modifie_le",
         ]
         read_only_fields = ["id", "matricule", "cree_le", "modifie_le"]
@@ -34,20 +39,30 @@ class NoteSerializer(serializers.ModelSerializer):
     eleve_nom = serializers.CharField(source="eleve.nom_complet", read_only=True)
     trimestre_display = serializers.CharField(source="get_trimestre_display", read_only=True)
     saisi_par_nom = serializers.CharField(source="saisi_par.nom_complet", read_only=True, default=None)
+    bareme = serializers.SerializerMethodField()
 
     class Meta:
         model = Note
         fields = [
             "id", "eleve", "eleve_nom", "matiere", "trimestre", "trimestre_display",
-            "type_evaluation", "valeur", "verrouille", "annee_academique",
+            "type_evaluation", "valeur", "bareme", "verrouille", "annee_academique",
             "saisi_par", "saisi_par_nom", "cree_le", "modifie_le",
         ]
         read_only_fields = ["id", "verrouille", "saisi_par", "cree_le", "modifie_le"]
 
-    def validate_valeur(self, valeur):
-        if valeur < 0 or valeur > 20:
-            raise serializers.ValidationError("La note doit être comprise entre 0 et 20.")
-        return valeur
+    def get_bareme(self, obj):
+        return services.bareme(obj.eleve)
+
+    def validate(self, attrs):
+        eleve = attrs.get("eleve", getattr(self.instance, "eleve", None))
+        valeur = attrs.get("valeur", getattr(self.instance, "valeur", None))
+        if eleve is not None and valeur is not None:
+            max_note = services.bareme(eleve)
+            if valeur < 0 or valeur > max_note:
+                raise serializers.ValidationError(
+                    {"valeur": f"La note doit être comprise entre 0 et {max_note} pour cet élève."}
+                )
+        return attrs
 
 
 class PresenceSerializer(serializers.ModelSerializer):

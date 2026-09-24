@@ -225,12 +225,15 @@ class InterventionEnseignantSerializer(serializers.ModelSerializer):
     enseignant_nom = serializers.CharField(source="enseignant.utilisateur.nom_complet", read_only=True)
     ecole_nom = serializers.CharField(source="ecole.nom", read_only=True)
     classe_libelle = serializers.CharField(source="classe.libelle", read_only=True)
+    # §7.1 : barème 1re-6e (Primaire) = /10, 7e-Terminale (Collège/Lycée) = /20 —
+    # le frontend en a besoin pour afficher/valider le bon barème de saisie des notes.
+    cycle_code = serializers.CharField(source="classe.cycle.code", read_only=True)
 
     class Meta:
         model = InterventionEnseignant
         fields = [
             "id", "enseignant", "enseignant_nom", "ecole", "ecole_nom", "classe", "classe_libelle",
-            "matiere", "volume_horaire_hebdo", "annee_academique", "actif", "cree_le", "modifie_le",
+            "cycle_code", "matiere", "volume_horaire_hebdo", "annee_academique", "actif", "cree_le", "modifie_le",
         ]
         read_only_fields = ["id", "cree_le", "modifie_le"]
 

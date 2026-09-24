@@ -29,12 +29,18 @@ type Eleve = {
   photo_url: string;
   ecole_nom: string;
   classe_libelle: string;
+  cycle_code: string;
   statut: string;
   statut_display: string;
   filiations: Filiation[];
 };
 type Ecole = { id: string; nom: string };
 type Classe = { id: string; libelle: string; cycle_libelle: string };
+
+// §7.1 : barème 1re-6e (Primaire) = /10, 7e-Terminale (Collège/Lycée) = /20.
+function baremeEleve(eleve: Eleve): number {
+  return eleve.cycle_code === "primaire" ? 10 : 20;
+}
 
 const STATUTS_ELEVE = [
   { valeur: "actif", label: "Actif" },
@@ -477,6 +483,7 @@ type ExamenAgrege = {
 };
 type Livret = {
   eleve_nom: string;
+  bareme: number;
   bulletins: BulletinAgrege[];
   deliberations: DeliberationAgregee[];
   examens: ExamenAgrege[];
@@ -529,12 +536,12 @@ function DialogueLivret({ eleve }: { eleve: Eleve }) {
                   {livret.bulletins.map((b, i) => (
                     <div key={i} className="rounded-md bg-muted p-2 text-sm">
                       <p className="font-medium">
-                        {b.trimestre} — moyenne générale : {b.moyenne_generale ?? "—"}/20
+                        {b.trimestre} — moyenne générale : {b.moyenne_generale ?? "—"}/{livret.bareme}
                       </p>
                       <ul className="mt-1 text-xs text-muted-foreground">
                         {b.matieres.map((m) => (
                           <li key={m.matiere}>
-                            {m.matiere} : {m.moyenne}/20
+                            {m.matiere} : {m.moyenne}/{livret.bareme}
                           </li>
                         ))}
                       </ul>
@@ -559,7 +566,7 @@ function DialogueLivret({ eleve }: { eleve: Eleve }) {
                         </Badge>
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Moyenne : {d.moyenne_generale ?? "—"}/20{d.motif && ` — ${d.motif}`}
+                        Moyenne : {d.moyenne_generale ?? "—"}/{livret.bareme}{d.motif && ` — ${d.motif}`}
                       </p>
                     </li>
                   ))}
@@ -768,7 +775,7 @@ function DialogueExamenDeliberation({ eleve }: { eleve: Eleve }) {
               </div>
               {deliberationCourante?.moyenne_generale && (
                 <p className="text-xs text-muted-foreground">
-                  Moyenne générale calculée : {deliberationCourante.moyenne_generale}/20
+                  Moyenne générale calculée : {deliberationCourante.moyenne_generale}/{baremeEleve(eleve)}
                 </p>
               )}
               {erreurDeliberation && <p className="text-sm text-destructive">{erreurDeliberation}</p>}

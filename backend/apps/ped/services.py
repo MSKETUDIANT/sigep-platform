@@ -6,6 +6,12 @@ from django.db.models import Avg
 from .models import Deliberation, InscriptionExamen, Note
 
 
+def bareme(eleve) -> int:
+    """§7.1 : barème de notation — 1re-6e année (Primaire, CP1..CM2) = /10,
+    7e à Terminale (Collège/Lycée) = /20."""
+    return 10 if eleve.classe.cycle.code == "primaire" else 20
+
+
 def bulletin(eleve, annee_academique: str, trimestre: str) -> dict:
     """US-7.2 : moyenne par matière + moyenne générale du trimestre, à partir
     des Note existantes. Simplification assumée : moyenne simple des notes
@@ -22,6 +28,7 @@ def bulletin(eleve, annee_academique: str, trimestre: str) -> dict:
         "trimestre": trimestre,
         "matieres": matieres,
         "moyenne_generale": moyenne_generale,
+        "bareme": bareme(eleve),
     }
 
 
@@ -58,6 +65,7 @@ def livret(eleve) -> dict:
     return {
         "eleve_id": str(eleve.id),
         "eleve_nom": eleve.nom_complet,
+        "bareme": bareme(eleve),
         "bulletins": bulletins,
         "deliberations": deliberations,
         "examens": examens,
