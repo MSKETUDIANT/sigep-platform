@@ -1,8 +1,9 @@
 """Génération des codes territoriaux auto (US-1.3, US-1.5).
 
-Formats cibles (voir §2.4-2.5 du dossier fonctionnel) :
-    Sous-préfecture : GN-<RÉGION>-SP-<SUFFIXE>   ex. GN-KIN-SP-FRI
-    Quartier        : GN-<RÉGION>-Q-<SUFFIXE>    ex. GN-CNK-Q-BLB
+Formats cibles (voir §9 du dossier fonctionnel) :
+    Sous-préfecture : GN-<RÉGION>-SP-<SUFFIXE>       ex. GN-KIN-SP-FRI
+    Commune         : GN-<RÉGION>-C-<SUFFIXE>        ex. GN-KIN-C-COM
+    Quartier        : GN-<RÉGION>-<COMMUNE>-<SUFFIXE> ex. GN-CNK-KAL-BLB
 """
 import re
 import unicodedata

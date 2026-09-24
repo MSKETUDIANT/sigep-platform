@@ -182,7 +182,8 @@ class Quartier(TimestampedModel):
     """Quartiers (schéma B) — créés et affectés par le Super Admin (US-1.5, US-1.7)."""
 
     CODE_REGEX = RegexValidator(
-        r"^GN-[A-Z]{3}-Q-[A-Z0-9]{2,5}$", "Code quartier invalide (format attendu : GN-XXX-Q-XXXXX)"
+        r"^GN-[A-Z]{3}-[A-Z]{3}-[A-Z0-9]{2,5}$",
+        "Code quartier invalide (format attendu : GN-XXX-XXX-XXXXX)",
     )
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -215,9 +216,13 @@ class Quartier(TimestampedModel):
         return f"{self.nom} ({self.commune.nom})"
 
     def _generer_code(self) -> str:
+        # Format §9 du dossier fonctionnel : GN-<RÉGION>-<COMMUNE>-<QUARTIER>,
+        # ex. GN-CNK-KAL-BLB (Boulbinet, commune de Kaloum) — le segment du
+        # milieu identifie la commune, pas un "Q" littéral.
         region_code = code_region_depuis(self.commune.region.code)
+        commune_code = generer_suffixe_code(self.commune.nom)
         suffixe = generer_suffixe_code(self.nom)
-        base_code = f"GN-{region_code}-Q-{suffixe}"
+        base_code = f"GN-{region_code}-{commune_code}-{suffixe}"
         return generer_code_unique(Quartier, base_code, exclude_pk=self.pk)
 
     def save(self, *args, **kwargs):
