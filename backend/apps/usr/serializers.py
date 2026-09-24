@@ -201,6 +201,13 @@ class EnseignantSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "utilisateur", "matricule", "cree_le", "modifie_le"]
 
+    def validate_matiere_principale(self, valeur):
+        if valeur and valeur not in services.TOUTES_MATIERES_OFFICIELLES:
+            raise serializers.ValidationError(
+                f"Matière invalide. Choix possibles : {', '.join(services.TOUTES_MATIERES_OFFICIELLES)}."
+            )
+        return valeur
+
     def create(self, validated_data):
         donnees_compte = {
             "identifiant": validated_data.pop("identifiant"),

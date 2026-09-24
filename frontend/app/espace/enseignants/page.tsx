@@ -27,6 +27,22 @@ type Enseignant = {
   statut_enseignant_display: string;
 };
 type Ecole = { id: string; nom: string };
+
+// Catalogue confirmé 2026-09-25 — doit rester synchronisé avec
+// backend/apps/usr/services.py (MATIERES_COLLEGE/MATIERES_LYCEE). Pas de
+// filière (SM/SS/Lettres) distinguée au lycée pour l'instant : les 7
+// matières dominantes des 3 filières sont regroupées dans une seule liste.
+const MATIERES_COLLEGE = [
+  "Français", "Mathématiques", "Physique", "Chimie", "Biologie",
+  "Histoire", "Géographie", "Éducation Civique et Morale", "Anglais",
+  "Éducation Physique et Sportive",
+];
+const MATIERES_LYCEE = [
+  "Français", "Anglais", "Philosophie", "Éducation Physique et Sportive",
+  "Mathématiques", "Physique", "Chimie", "Sciences de la Vie et de la Terre",
+  "Histoire", "Géographie", "Économie",
+];
+const MATIERES_PAR_CYCLE: Record<string, string[]> = { college: MATIERES_COLLEGE, lycee: MATIERES_LYCEE };
 type Classe = { id: string; libelle: string; cycle_libelle: string; cycle_code: string };
 
 export default function EnseignantsPage() {
@@ -86,6 +102,7 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
   const [telephone, setTelephone] = useState("");
   const [nom, setNom] = useState("");
   const [prenoms, setPrenoms] = useState("");
+  const [cycle, setCycle] = useState<"primaire" | "college" | "lycee">("primaire");
   const [matiere, setMatiere] = useState("");
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -109,6 +126,7 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
     setTelephone("");
     setNom("");
     setPrenoms("");
+    setCycle("primaire");
     setMatiere("");
     setCompteCree(false);
     setErreur(null);
@@ -212,14 +230,38 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
               <InputTelephone id="ens-telephone" value={telephone} onChange={setTelephone} required />
             </div>
             <div>
-              <Label htmlFor="ens-matiere">Matière principale</Label>
-              <Input id="ens-matiere" value={matiere} onChange={(e) => setMatiere(e.target.value)} />
+              <Label htmlFor="ens-cycle">Cycle</Label>
+              <SelectNatif
+                id="ens-cycle"
+                value={cycle}
+                onChange={(e) => {
+                  setCycle(e.target.value as typeof cycle);
+                  setMatiere("");
+                }}
+              >
+                <option value="primaire">Primaire (polyvalent, toutes matières)</option>
+                <option value="college">Collège</option>
+                <option value="lycee">Lycée</option>
+              </SelectNatif>
               <p className="mt-1 text-xs text-muted-foreground">
-                Optionnel — spécialité générale de l&apos;enseignant, distincte de la matière affectée à
-                chaque classe. Laissez vide pour un enseignant du primaire (polyvalent, toutes matières) :
-                la règle primaire/secondaire s&apos;applique à l&apos;affectation à une classe, pas ici.
+                Sert uniquement à proposer la bonne liste de matières ci-dessous — la règle de
+                polyvalence réelle (une seule classe au primaire, etc.) s&apos;applique à l&apos;affectation
+                à une classe, pas ici.
               </p>
             </div>
+            {cycle !== "primaire" && (
+              <div>
+                <Label htmlFor="ens-matiere">Matière principale</Label>
+                <SelectNatif id="ens-matiere" value={matiere} onChange={(e) => setMatiere(e.target.value)}>
+                  <option value="">— choisir —</option>
+                  {MATIERES_PAR_CYCLE[cycle].map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </SelectNatif>
+              </div>
+            )}
             {erreur && <p className="text-sm text-destructive">{erreur}</p>}
             <Button type="submit" disabled={enCours}>
               {enCours ? "Création..." : "Créer (mot de passe généré automatiquement)"}
@@ -291,7 +333,15 @@ function DialogueAffecterIntervention({ enseignant, onAffecte }: { enseignant: E
           </div>
           <div>
             <Label htmlFor="int-classe">Classe</Label>
-            <SelectNatif id="int-classe" value={classeId} onChange={(e) => setClasseId(e.target.value)} required>
+            <SelectNatif
+              id="int-classe"
+              value={classeId}
+              onChange={(e) => {
+                setClasseId(e.target.value);
+                setMatiere(""); // la matière valide dépend du cycle de la classe choisie
+              }}
+              required
+            >
               <option value="">— choisir —</option>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -308,7 +358,20 @@ function DialogueAffecterIntervention({ enseignant, onAffecte }: { enseignant: E
           ) : (
             <div>
               <Label htmlFor="int-matiere">Matière</Label>
-              <Input id="int-matiere" value={matiere} onChange={(e) => setMatiere(e.target.value)} required />
+              <SelectNatif
+                id="int-matiere"
+                value={matiere}
+                onChange={(e) => setMatiere(e.target.value)}
+                required
+                disabled={!classeChoisie}
+              >
+                <option value="">{classeChoisie ? "— choisir —" : "Choisissez d'abord la classe"}</option>
+                {(classeChoisie ? MATIERES_PAR_CYCLE[classeChoisie.cycle_code] ?? [] : []).map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </SelectNatif>
               <p className="mt-1 text-xs text-muted-foreground">
                 Collège/Lycée : plusieurs affectations possibles (jusqu&apos;à 4), une matière par
                 affectation.

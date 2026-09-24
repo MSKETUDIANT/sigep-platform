@@ -3,10 +3,30 @@ officiel sur l'enseignement guinéen) : au primaire, un enseignant est
 polyvalent et titulaire d'une seule classe (toutes matières) ; au secondaire,
 les enseignants sont spécialisés par matière, plusieurs affectations actives
 sont possibles mais jamais mélangées avec le primaire. Voir
-usr.models.InterventionEnseignant pour le détail de la règle."""
+usr.models.InterventionEnseignant pour le détail de la règle.
+
+Catalogue de matières (confirmé 2026-09-25) : pas de filière (SM/SS/Lettres)
+distinguée pour l'instant au lycée — les matières dominantes des 3 filières
+sont regroupées dans une seule liste, à affiner si le filtrage par filière
+est demandé plus tard."""
 from rest_framework.exceptions import ValidationError
 
 LIMITE_INTERVENTIONS_SECONDAIRE = 4
+
+MATIERES_COLLEGE = [
+    "Français", "Mathématiques", "Physique", "Chimie", "Biologie",
+    "Histoire", "Géographie", "Éducation Civique et Morale", "Anglais",
+    "Éducation Physique et Sportive",
+]
+# 4 transversales (toutes filières) + 7 dominantes (Sciences Mathématiques,
+# Sciences Expérimentales, Sciences Sociales confondues, pas encore filtrées).
+MATIERES_LYCEE = [
+    "Français", "Anglais", "Philosophie", "Éducation Physique et Sportive",
+    "Mathématiques", "Physique", "Chimie", "Sciences de la Vie et de la Terre",
+    "Histoire", "Géographie", "Économie",
+]
+MATIERES_PAR_CYCLE = {"college": MATIERES_COLLEGE, "lycee": MATIERES_LYCEE}
+TOUTES_MATIERES_OFFICIELLES = sorted(set(MATIERES_COLLEGE) | set(MATIERES_LYCEE))
 
 
 def valider_polyvalence(enseignant, classe, matiere: str, *, exclude_pk=None) -> str:
@@ -40,4 +60,7 @@ def valider_polyvalence(enseignant, classe, matiere: str, *, exclude_pk=None) ->
         )
     if not matiere:
         raise ValidationError("La matière est obligatoire pour une affectation au collège ou au lycée.")
+    liste = MATIERES_PAR_CYCLE[classe.cycle.code]
+    if matiere not in liste:
+        raise ValidationError(f"Matière invalide pour ce cycle. Choix possibles : {', '.join(liste)}.")
     return matiere
