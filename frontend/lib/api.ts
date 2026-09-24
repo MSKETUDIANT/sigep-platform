@@ -23,3 +23,21 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   }
   return reponse;
 }
+
+/** Transforme une réponse d'erreur DRF ({"champ": ["message"]}, {"detail": "..."},
+ * {"non_field_errors": [...]}) en un message lisible — au lieu d'afficher le
+ * JSON brut à l'utilisateur. */
+export function extraireErreurApi(donnees: unknown): string {
+  if (donnees == null) return "Une erreur est survenue.";
+  if (typeof donnees === "string") return donnees;
+  if (typeof donnees !== "object") return "Une erreur est survenue.";
+
+  const objet = donnees as Record<string, unknown>;
+  if (typeof objet.detail === "string") return objet.detail;
+
+  for (const valeur of Object.values(objet)) {
+    if (Array.isArray(valeur) && typeof valeur[0] === "string") return valeur[0];
+    if (typeof valeur === "string") return valeur;
+  }
+  return "Une erreur est survenue.";
+}

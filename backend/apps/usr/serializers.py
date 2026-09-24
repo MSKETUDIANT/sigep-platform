@@ -164,8 +164,6 @@ class UtilisateurCreateSerializer(serializers.ModelSerializer):
         utilisateur.mot_de_passe_provisoire = True
         utilisateur.save(update_fields=["statut", "mot_de_passe_provisoire"])
         envoyer_email_bienvenue(utilisateur)
-        # Exposé une seule fois par la vue (creation response) — jamais stocké en clair.
-        utilisateur.mot_de_passe_genere = mot_de_passe
         return utilisateur
 
 
@@ -211,7 +209,6 @@ class EnseignantSerializer(serializers.ModelSerializer):
         envoyer_email_bienvenue(utilisateur)
 
         enseignant = Enseignant.objects.create(utilisateur=utilisateur, **validated_data)
-        enseignant.mot_de_passe_genere = mot_de_passe
         return enseignant
 
 

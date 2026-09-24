@@ -29,3 +29,26 @@ class LectureAuthentifieEcritureSuperAdmin(BasePermission):
         if request.method in SAFE_METHODS:
             return True
         return request.user.profil == "super_admin"
+
+
+class LectureAuthentifieEcritureSuperAdminOuDirecteurEcole(BasePermission):
+    """Comme LectureAuthentifieEcritureSuperAdmin, mais le Directeur d'école a
+    aussi le droit d'écrire (§6.1/§17 du dossier fonctionnel : "Gérer les
+    enseignants/élèves/équipements" dans son tableau de bord — "Dir. école"
+    a ●●☑ sur Enseignants/Élèves dans la matrice des droits, contrairement
+    aux autres profils territoriaux qui restent lecture seule à ce niveau).
+
+    N'autorise PAS à choisir n'importe quelle école dans le payload : chaque
+    ViewSet qui utilise cette permission doit lui-même vérifier, dans son
+    perform_create/perform_update, que l'école visée fait partie de
+    ecoles_visibles(request.user) — cette permission ne fait que lever la
+    porte d'entrée (méthode HTTP), pas la vérification du contenu."""
+
+    message = "Modification réservée au Super Admin ou au Directeur de l'école concernée."
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.method in SAFE_METHODS:
+            return True
+        return request.user.profil in ("super_admin", "directeur_ecole")

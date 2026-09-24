@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { KeyRound, Plus, Send, UserCheck, UserX } from "lucide-react";
+import { CheckCircle2, KeyRound, Plus, Send, UserCheck, UserX } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import { InputTelephone, formaterTelephoneGuinee } from "@/components/ui/input-t
 import { Label } from "@/components/ui/label";
 import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, extraireErreurApi } from "@/lib/api";
 import { useRessource, useRessourcePaginee } from "@/lib/hooks/use-ressource";
 import { cn, suggererIdentifiant } from "@/lib/utils";
 
@@ -217,7 +217,7 @@ function DialogueCreerCompte({ onCree }: { onCree: () => void }) {
   const [profil, setProfil] = useState("");
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
-  const [motDePasseGenere, setMotDePasseGenere] = useState<string | null>(null);
+  const [compteCree, setCompteCree] = useState(false);
 
   function mettreAJourNom(valeur: string) {
     setNom(valeur);
@@ -238,7 +238,7 @@ function DialogueCreerCompte({ onCree }: { onCree: () => void }) {
     setNom("");
     setPrenoms("");
     setProfil("");
-    setMotDePasseGenere(null);
+    setCompteCree(false);
     setErreur(null);
   }
 
@@ -259,8 +259,8 @@ function DialogueCreerCompte({ onCree }: { onCree: () => void }) {
         }),
       });
       const donnees = await reponse.json();
-      if (!reponse.ok) throw new Error(JSON.stringify(donnees));
-      setMotDePasseGenere(donnees.mot_de_passe_provisoire_genere);
+      if (!reponse.ok) throw new Error(extraireErreurApi(donnees));
+      setCompteCree(true);
       onCree();
     } catch (err) {
       setErreur(err instanceof Error ? err.message : String(err));
@@ -288,13 +288,17 @@ function DialogueCreerCompte({ onCree }: { onCree: () => void }) {
           <DialogTitle>Nouveau compte</DialogTitle>
         </DialogHeader>
 
-        {motDePasseGenere ? (
+        {compteCree ? (
           <div className="flex flex-col gap-3">
-            <p className="text-sm">
-              Compte <strong>{identifiant}</strong> créé. Mot de passe provisoire (à transmettre, ne sera plus
-              jamais affiché) :
+            <div className="flex items-center gap-2 text-succes">
+              <CheckCircle2 className="h-5 w-5" />
+              <p className="text-sm font-medium">Compte {identifiant} créé.</p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {email
+                ? "Un email vient d'être envoyé pour que la personne active son compte et choisisse elle-même son mot de passe — personne d'autre, y compris vous, ne le connaîtra."
+                : "Aucun email renseigné : utilisez \"Activer\" dans la liste pour activer ce compte manuellement, ou \"Réinitialiser mdp\" si la personne a besoin d'un mot de passe à transmettre vous-même."}
             </p>
-            <p className="rounded-md bg-secondary p-3 font-mono text-sm">{motDePasseGenere}</p>
             <Button onClick={fermer}>Fermer</Button>
           </div>
         ) : (
@@ -399,7 +403,7 @@ function DialogueAffecter({ utilisateur, onAffecte }: { utilisateur: Utilisateur
           body: JSON.stringify({ utilisateur: utilisateur.id, profil: utilisateur.profil, [config.champ]: unitId, motif }),
         });
       }
-      if (!reponse.ok) throw new Error(JSON.stringify(await reponse.json()));
+      if (!reponse.ok) throw new Error(extraireErreurApi(await reponse.json()));
       setOuvert(false);
       setUnitId("");
       setMotif("");

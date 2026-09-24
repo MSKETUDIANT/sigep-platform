@@ -1,10 +1,15 @@
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from apps.aud.services import consigner
-from apps.core.permissions import EstSuperAdmin, LectureAuthentifieEcritureSuperAdmin
+from apps.core.permissions import (
+    EstSuperAdmin,
+    LectureAuthentifieEcritureSuperAdmin,
+    LectureAuthentifieEcritureSuperAdminOuDirecteurEcole,
+)
 from apps.org.services import PROFILS_VUE_NATIONALE, ecoles_visibles
 
 from .models import Enseignant, InterventionEnseignant, StatutCompte, Utilisateur
@@ -140,9 +145,13 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
             cible_id=utilisateur.id,
             detail=f"Compte {utilisateur.identifiant} ({utilisateur.profil}) créé",
         )
-        reponse = UtilisateurSerializer(utilisateur).data
-        reponse["mot_de_passe_provisoire_genere"] = utilisateur.mot_de_passe_genere
-        return Response(reponse, status=status.HTTP_201_CREATED)
+        # Le mot de passe provisoire n'est plus renvoyé ici (ni à l'admin, ni
+        # sur le réseau) : l'email de bienvenue + l'activation par OTP
+        # (US-2.10) couvrent tout le flux normal — l'admin n'a plus besoin de
+        # le connaître. `reinitialiser_mot_de_passe` reste le seul endroit où
+        # un mot de passe est montré, pour le cas explicite d'un compte sans
+        # email.
+        return Response(UtilisateurSerializer(utilisateur).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"])
     def activer(self, request, pk=None):
@@ -201,10 +210,13 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
 class EnseignantViewSet(viewsets.ModelViewSet):
     """US-4.1 (création) et US-4.5 (liste bornée au périmètre — un enseignant
     est visible s'il intervient dans au moins une école du périmètre du
-    profil connecté). Écriture réservée au Super Admin pour l'instant (même
-    logique que org.Ecole) — ouverture au Directeur d'École à affiner plus tard."""
+    profil connecté). Écriture ouverte au Super Admin et au Directeur d'École
+    (§6.1/§17 du dossier fonctionnel : "Gérer les enseignants" fait partie du
+    tableau de bord du Directeur) — pas de champ "école" sur Enseignant
+    lui-même (le rattachement se fait via InterventionEnseignant), donc pas
+    de vérification de périmètre à faire ici."""
 
-    permission_classes = [LectureAuthentifieEcritureSuperAdmin]
+    permission_classes = [LectureAuthentifieEcritureSuperAdminOuDirecteurEcole]
     filterset_fields = ["statut_enseignant"]
     search_fields = ["matricule", "utilisateur__nom", "utilisateur__prenoms", "matiere_principale"]
 
@@ -229,18 +241,21 @@ class EnseignantViewSet(viewsets.ModelViewSet):
             cible_id=enseignant.id,
             detail=f"{enseignant.matricule} — {enseignant.utilisateur.nom_complet}",
         )
-        reponse = EnseignantSerializer(enseignant).data
-        reponse["mot_de_passe_provisoire_genere"] = enseignant.mot_de_passe_genere
-        return Response(reponse, status=status.HTTP_201_CREATED)
+        # Cf. UtilisateurViewSet.create — mot de passe provisoire plus exposé ici.
+        return Response(EnseignantSerializer(enseignant).data, status=status.HTTP_201_CREATED)
 
 
 class InterventionEnseignantViewSet(viewsets.ModelViewSet):
     """US-4.1/US-4.2/US-4.6 : rattachement d'un enseignant à une école/classe,
     borné au périmètre (US-4.5) — sert aussi d'"emploi du temps" en filtrant
-    par ?enseignant=<son_id> (US-4.6)."""
+    par ?enseignant=<son_id> (US-4.6). Écriture ouverte au Directeur d'École
+    (comme EnseignantViewSet), mais ici le modèle porte bien une "école" —
+    perform_create/perform_update vérifient donc explicitement que l'école
+    visée fait partie de son périmètre, pour qu'un Directeur ne puisse pas
+    affecter un enseignant à une école qui n'est pas la sienne."""
 
     serializer_class = InterventionEnseignantSerializer
-    permission_classes = [LectureAuthentifieEcritureSuperAdmin]
+    permission_classes = [LectureAuthentifieEcritureSuperAdminOuDirecteurEcole]
     filterset_fields = ["enseignant", "ecole", "classe", "actif", "annee_academique"]
 
     def get_queryset(self):
@@ -253,3 +268,19 @@ class InterventionEnseignantViewSet(viewsets.ModelViewSet):
             # même si aucune règle de périmètre territorial ne s'applique à lui.
             return qs.filter(enseignant__utilisateur=user)
         return qs.filter(ecole__in=ecoles_visibles(user))
+
+    def _verifier_ecole_dans_perimetre(self, ecole):
+        user = self.request.user
+        if user.profil in PROFILS_VUE_NATIONALE:
+            return
+        if not ecole or ecole not in ecoles_visibles(user):
+            raise PermissionDenied("Cette école n'est pas dans votre périmètre.")
+
+    def perform_create(self, serializer):
+        self._verifier_ecole_dans_perimetre(serializer.validated_data.get("ecole"))
+        serializer.save()
+
+    def perform_update(self, serializer):
+        ecole = serializer.validated_data.get("ecole", serializer.instance.ecole)
+        self._verifier_ecole_dans_perimetre(ecole)
+        serializer.save()

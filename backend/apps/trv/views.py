@@ -1,11 +1,12 @@
 from django.utils import timezone
 from rest_framework import generics, permissions, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from apps.aud.services import consigner
-from apps.core.permissions import LectureAuthentifieEcritureSuperAdmin
-from apps.org.services import ecoles_visibles
+from apps.core.permissions import LectureAuthentifieEcritureSuperAdminOuDirecteurEcole
+from apps.org.services import PROFILS_VUE_NATIONALE, ecoles_visibles
 
 from .models import Equipement, Inspection, MessageContact, Signalement, StatutInspection
 from .serializers import (
@@ -19,15 +20,37 @@ from .serializers import (
 )
 
 
+def _verifier_ecole_dans_perimetre(user, ecole):
+    """Partagé par les ViewSets de ce module : un profil non national doit
+    toujours viser une école de son propre périmètre à l'écriture — jusqu'ici
+    seule la lecture (get_queryset) était bornée, l'écriture ne vérifiait pas
+    l'"ecole" fournie dans le payload."""
+    if user.profil in PROFILS_VUE_NATIONALE:
+        return
+    if not ecole or ecole not in ecoles_visibles(user):
+        raise PermissionDenied("Cette école n'est pas dans votre périmètre.")
+
+
 class EquipementViewSet(viewsets.ModelViewSet):
-    """US-4.4 : inventaire d'équipements, borné au périmètre du profil connecté."""
+    """US-4.4 : inventaire d'équipements, borné au périmètre du profil
+    connecté. Écriture ouverte au Directeur d'École (§6.1/§17), borné à sa
+    propre école."""
 
     serializer_class = EquipementSerializer
-    permission_classes = [LectureAuthentifieEcritureSuperAdmin]
+    permission_classes = [LectureAuthentifieEcritureSuperAdminOuDirecteurEcole]
     filterset_fields = ["ecole"]
 
     def get_queryset(self):
         return Equipement.objects.select_related("ecole").filter(ecole__in=ecoles_visibles(self.request.user))
+
+    def perform_create(self, serializer):
+        _verifier_ecole_dans_perimetre(self.request.user, serializer.validated_data.get("ecole"))
+        serializer.save()
+
+    def perform_update(self, serializer):
+        ecole = serializer.validated_data.get("ecole", serializer.instance.ecole)
+        _verifier_ecole_dans_perimetre(self.request.user, ecole)
+        serializer.save()
 
 
 class SignalementViewSet(viewsets.ModelViewSet):
@@ -45,6 +68,7 @@ class SignalementViewSet(viewsets.ModelViewSet):
         )
 
     def perform_create(self, serializer):
+        _verifier_ecole_dans_perimetre(self.request.user, serializer.validated_data.get("ecole"))
         signalement = serializer.save(origine="interne", auteur=self.request.user)
         consigner(
             acteur=self.request.user,
@@ -98,6 +122,7 @@ class InspectionViewSet(viewsets.ModelViewSet):
         )
 
     def perform_create(self, serializer):
+        _verifier_ecole_dans_perimetre(self.request.user, serializer.validated_data.get("ecole"))
         inspection = serializer.save(planifie_par=self.request.user)
         consigner(
             acteur=self.request.user,
