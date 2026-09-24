@@ -151,6 +151,15 @@ class UtilisateurCreateSerializer(serializers.ModelSerializer):
         model = Utilisateur
         fields = ["identifiant", "email", "telephone", "profil", "nom", "prenoms", "date_naissance", "sexe"]
 
+    def validate_profil(self, profil):
+        if profil == "enseignant":
+            raise serializers.ValidationError(
+                "Un Enseignant doit être créé depuis /espace/enseignants (fiche métier — matricule, "
+                "matière, statut), pas depuis Comptes : sinon le compte reste incomplet, sans fiche "
+                "Enseignant, et aucune classe ne peut jamais lui être affectée."
+            )
+        return profil
+
     def create(self, validated_data):
         mot_de_passe = generer_mot_de_passe_provisoire()
         utilisateur = Utilisateur.objects.create_user(

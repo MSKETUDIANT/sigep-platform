@@ -41,13 +41,17 @@ type Utilisateur = {
   } | null;
 };
 
+// "Enseignant" volontairement absent : ce profil a besoin d'une fiche métier
+// (matricule, matière, statut) créée uniquement via /espace/enseignants —
+// le backend refuse maintenant explicitement de créer un enseignant ici
+// (UtilisateurCreateSerializer.validate_profil), pour ne jamais laisser un
+// compte enseignant sans fiche, orphelin de toute affectation possible.
 const PROFILS_CREABLES = [
   { valeur: "dse", label: "Directeur Sous-Préfectoral" },
   { valeur: "dce", label: "Directeur Communal" },
   { valeur: "dpe", label: "Directeur Préfectoral" },
   { valeur: "ir", label: "Inspecteur Régional" },
   { valeur: "directeur_ecole", label: "Directeur d'École" },
-  { valeur: "enseignant", label: "Enseignant" },
   { valeur: "dge", label: "Directeur Général de l'Éducation" },
   { valeur: "ministre", label: "Ministre" },
   { valeur: "cabinet", label: "Cabinet" },
