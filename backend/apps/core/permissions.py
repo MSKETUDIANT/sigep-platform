@@ -52,3 +52,23 @@ class LectureAuthentifieEcritureSuperAdminOuDirecteurEcole(BasePermission):
         if request.method in SAFE_METHODS:
             return True
         return request.user.profil in ("super_admin", "directeur_ecole")
+
+
+class LectureAuthentifieEcritureSuperAdminDirecteurOuEnseignant(BasePermission):
+    """Sprint 5 (EPIC 7) : comme LectureAuthentifieEcritureSuperAdminOuDirecteurEcole,
+    mais l'Enseignant peut aussi écrire — Note/Presence sont saisies par
+    l'enseignant lui-même (§7.1 : "Notes, appel"), pas seulement par le
+    Directeur. Là encore, cette permission ne fait que lever la porte
+    d'entrée : chaque ViewSet doit vérifier dans perform_create/perform_update
+    que l'enseignant a bien une InterventionEnseignant active correspondant à
+    l'école/classe/matière visée (un enseignant ne peut pas noter n'importe
+    quel élève)."""
+
+    message = "Modification réservée au Super Admin, au Directeur de l'école concernée ou à l'enseignant de la classe."
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.method in SAFE_METHODS:
+            return True
+        return request.user.profil in ("super_admin", "directeur_ecole", "enseignant")
