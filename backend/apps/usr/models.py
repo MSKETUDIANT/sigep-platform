@@ -134,7 +134,12 @@ class Enseignant(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     utilisateur = models.OneToOneField(Utilisateur, on_delete=models.CASCADE, related_name="fiche_enseignant")
     matricule = models.CharField(max_length=20, unique=True, blank=True)
-    matiere_principale = models.CharField(max_length=100, blank=True)
+    # Un enseignant du collège/lycée dispense couramment plusieurs matières
+    # (jusqu'à LIMITE_INTERVENTIONS_SECONDAIRE, voir usr.services) — stocké en
+    # une seule chaîne "Matière 1, Matière 2..." plutôt qu'une relation à part,
+    # ce champ reste une simple étiquette informative (les vraies affectations
+    # matière-par-matière sont sur InterventionEnseignant).
+    matiere_principale = models.CharField(max_length=255, blank=True)
     statut_enseignant = models.CharField(
         max_length=20, choices=StatutEnseignant.choices, default=StatutEnseignant.TITULAIRE
     )

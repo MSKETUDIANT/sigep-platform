@@ -43,6 +43,8 @@ const MATIERES_LYCEE = [
   "Histoire", "Géographie", "Économie",
 ];
 const MATIERES_PAR_CYCLE: Record<string, string[]> = { college: MATIERES_COLLEGE, lycee: MATIERES_LYCEE };
+// Doit rester synchronisé avec backend/apps/usr/services.py::LIMITE_INTERVENTIONS_SECONDAIRE.
+const LIMITE_MATIERES = 4;
 type Classe = { id: string; libelle: string; cycle_libelle: string; cycle_code: string };
 
 export default function EnseignantsPage() {
@@ -103,10 +105,16 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
   const [nom, setNom] = useState("");
   const [prenoms, setPrenoms] = useState("");
   const [cycle, setCycle] = useState<"primaire" | "college" | "lycee">("primaire");
-  const [matiere, setMatiere] = useState("");
+  const [matieres, setMatieres] = useState<string[]>([]);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [compteCree, setCompteCree] = useState(false);
+
+  function basculerMatiere(m: string) {
+    setMatieres((liste) =>
+      liste.includes(m) ? liste.filter((x) => x !== m) : liste.length < LIMITE_MATIERES ? [...liste, m] : liste
+    );
+  }
 
   function mettreAJourNom(valeur: string) {
     setNom(valeur);
@@ -127,7 +135,7 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
     setNom("");
     setPrenoms("");
     setCycle("primaire");
-    setMatiere("");
+    setMatieres([]);
     setCompteCree(false);
     setErreur(null);
   }
@@ -145,7 +153,7 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
           telephone: formaterTelephoneGuinee(telephone),
           nom,
           prenoms,
-          matiere_principale: matiere,
+          matiere_principale: matieres.join(", "),
         }),
       });
       const donnees = await reponse.json();
@@ -236,7 +244,7 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
                 value={cycle}
                 onChange={(e) => {
                   setCycle(e.target.value as typeof cycle);
-                  setMatiere("");
+                  setMatieres([]);
                 }}
               >
                 <option value="primaire">Primaire (polyvalent, toutes matières)</option>
@@ -251,15 +259,25 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
             </div>
             {cycle !== "primaire" && (
               <div>
-                <Label htmlFor="ens-matiere">Matière principale</Label>
-                <SelectNatif id="ens-matiere" value={matiere} onChange={(e) => setMatiere(e.target.value)}>
-                  <option value="">— choisir —</option>
+                <Label>Matière(s) principale(s)</Label>
+                <div className="grid grid-cols-2 gap-1.5 rounded-md border p-2">
                   {MATIERES_PAR_CYCLE[cycle].map((m) => (
-                    <option key={m} value={m}>
+                    <label key={m} className="flex items-center gap-1.5 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={matieres.includes(m)}
+                        disabled={!matieres.includes(m) && matieres.length >= LIMITE_MATIERES}
+                        onChange={() => basculerMatiere(m)}
+                      />
                       {m}
-                    </option>
+                    </label>
                   ))}
-                </SelectNatif>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Un enseignant du collège/lycée peut dispenser plusieurs matières (jusqu&apos;à{" "}
+                  {LIMITE_MATIERES}, autant que d&apos;affectations possibles à des classes) —{" "}
+                  {matieres.length}/{LIMITE_MATIERES} sélectionnée(s).
+                </p>
               </div>
             )}
             {erreur && <p className="text-sm text-destructive">{erreur}</p>}

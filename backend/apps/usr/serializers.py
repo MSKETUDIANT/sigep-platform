@@ -202,11 +202,25 @@ class EnseignantSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "utilisateur", "matricule", "cree_le", "modifie_le"]
 
     def validate_matiere_principale(self, valeur):
-        if valeur and valeur not in services.TOUTES_MATIERES_OFFICIELLES:
+        """Une ou plusieurs matières séparées par ", " — un enseignant du
+        collège/lycée dispense couramment plusieurs matières (jusqu'à
+        LIMITE_INTERVENTIONS_SECONDAIRE, même plafond que ses affectations)."""
+        if not valeur:
+            return valeur
+        matieres = [m.strip() for m in valeur.split(",") if m.strip()]
+        invalides = [m for m in matieres if m not in services.TOUTES_MATIERES_OFFICIELLES]
+        if invalides:
             raise serializers.ValidationError(
-                f"Matière invalide. Choix possibles : {', '.join(services.TOUTES_MATIERES_OFFICIELLES)}."
+                f"Matière(s) invalide(s) : {', '.join(invalides)}. "
+                f"Choix possibles : {', '.join(services.TOUTES_MATIERES_OFFICIELLES)}."
             )
-        return valeur
+        if len(matieres) > services.LIMITE_INTERVENTIONS_SECONDAIRE:
+            raise serializers.ValidationError(
+                f"Maximum {services.LIMITE_INTERVENTIONS_SECONDAIRE} matières."
+            )
+        if len(set(matieres)) != len(matieres):
+            raise serializers.ValidationError("Une même matière ne peut être sélectionnée qu'une fois.")
+        return ", ".join(matieres)
 
     def create(self, validated_data):
         donnees_compte = {
