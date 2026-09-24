@@ -214,6 +214,11 @@ function DialogueCreerEnseignant({ onCree }: { onCree: () => void }) {
             <div>
               <Label htmlFor="ens-matiere">Matière principale</Label>
               <Input id="ens-matiere" value={matiere} onChange={(e) => setMatiere(e.target.value)} />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Optionnel — spécialité générale de l&apos;enseignant, distincte de la matière affectée à
+                chaque classe. Laissez vide pour un enseignant du primaire (polyvalent, toutes matières) :
+                la règle primaire/secondaire s&apos;applique à l&apos;affectation à une classe, pas ici.
+              </p>
             </div>
             {erreur && <p className="text-sm text-destructive">{erreur}</p>}
             <Button type="submit" disabled={enCours}>

@@ -259,7 +259,7 @@ function EspaceEnseignant() {
                     <TableRow key={i.id}>
                       <TableCell>{i.ecole_nom}</TableCell>
                       <TableCell>{i.classe_libelle}</TableCell>
-                      <TableCell>{i.matiere}</TableCell>
+                      <TableCell>{i.matiere || "Toutes matières"}</TableCell>
                       <TableCell>{effectif ?? "…"}</TableCell>
                       <TableCell>{i.volume_horaire_hebdo}h</TableCell>
                       <TableCell>
@@ -574,7 +574,7 @@ function DialogueFaireAppel({ intervention }: { intervention: Intervention }) {
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            Appel — {intervention.matiere} ({intervention.classe_libelle})
+            Appel — {intervention.matiere || "Toutes matières"} ({intervention.classe_libelle})
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3">
