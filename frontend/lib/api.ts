@@ -1,13 +1,18 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+// sessionStorage plutôt que localStorage : chaque onglet garde sa propre
+// session, indépendante des autres — deux comptes différents peuvent rester
+// connectés en parallèle dans deux fenêtres/onglets du même navigateur.
+// Contrepartie assumée : fermer l'onglet déconnecte (localStorage aurait
+// survécu à la fermeture du navigateur), acceptée au profit de l'isolation.
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  return window.localStorage.getItem("sigep_access_token");
+  return window.sessionStorage.getItem("sigep_access_token");
 }
 
 export function clearSession() {
-  window.localStorage.removeItem("sigep_access_token");
-  window.localStorage.removeItem("sigep_refresh_token");
+  window.sessionStorage.removeItem("sigep_access_token");
+  window.sessionStorage.removeItem("sigep_refresh_token");
 }
 
 export async function apiFetch(path: string, options: RequestInit = {}) {

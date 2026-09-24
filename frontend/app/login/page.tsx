@@ -38,8 +38,8 @@ export default function LoginPage() {
 
   function accepterConnexion(donnees: ReponseConnexion) {
     setResultat(donnees);
-    window.localStorage.setItem("sigep_access_token", donnees.access);
-    window.localStorage.setItem("sigep_refresh_token", donnees.refresh);
+    window.sessionStorage.setItem("sigep_access_token", donnees.access);
+    window.sessionStorage.setItem("sigep_refresh_token", donnees.refresh);
     router.push("/espace");
   }
 
