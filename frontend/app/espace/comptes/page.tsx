@@ -37,6 +37,7 @@ type Utilisateur = {
     commune: string | null;
     prefecture: string | null;
     region: string | null;
+    ecole_id: string | null;
   } | null;
 };
 
@@ -52,7 +53,7 @@ const PROFILS_CREABLES = [
   { valeur: "cabinet", label: "Cabinet" },
 ];
 
-const PROFILS_AVEC_PERIMETRE = ["dse", "dce", "dpe", "ir"];
+const PROFILS_AVEC_PERIMETRE = ["dse", "dce", "dpe", "ir", "directeur_ecole"];
 
 const LIBELLES_STATUT: Record<string, string> = {
   actif: "Actif",
@@ -373,6 +374,7 @@ const CHAMP_PAR_PROFIL: Record<string, { champ: string; endpoint: string; label:
   dce: { champ: "commune", endpoint: "/territoire/communes/", label: "Commune" },
   dpe: { champ: "prefecture", endpoint: "/territoire/prefectures/", label: "Préfecture" },
   ir: { champ: "region", endpoint: "/territoire/regions/", label: "Région" },
+  directeur_ecole: { champ: "ecole", endpoint: "/etablissements/ecoles/", label: "École" },
 };
 
 function DialogueAffecter({ utilisateur, onAffecte }: { utilisateur: Utilisateur; onAffecte: () => void }) {

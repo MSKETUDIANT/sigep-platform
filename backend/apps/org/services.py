@@ -9,14 +9,18 @@ PROFILS_VUE_NATIONALE = {"super_admin", "dge", "ministre", "cabinet"}
 def ecoles_visibles(user):
     if user.profil in PROFILS_VUE_NATIONALE:
         return Ecole.objects.all()
-    if user.profil == "directeur_ecole":
-        return Ecole.objects.filter(directeur=user)
 
+    # Les 5 profils territoriaux (dont directeur_ecole) partagent le même
+    # mécanisme d'affectation (org.AffectationResponsable, cf. son
+    # chk_affectation_perimetre qui accepte déjà profil=directeur_ecole +
+    # ecole) — Super Admin les affecte tous depuis /espace/comptes.
     affectation = AffectationResponsable.objects.filter(
         utilisateur=user, statut="actif", date_fin__isnull=True
     ).first()
     if not affectation:
         return Ecole.objects.none()
+    if user.profil == "directeur_ecole":
+        return Ecole.objects.filter(id=affectation.ecole_id)
     if user.profil == "dse":
         return Ecole.objects.filter(sous_prefecture=affectation.sous_prefecture)
     if user.profil == "dce":
