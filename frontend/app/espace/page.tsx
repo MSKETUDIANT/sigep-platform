@@ -177,7 +177,9 @@ function EspaceEnseignant() {
   useEffect(() => {
     async function charger() {
       // Le backend restreint deja automatiquement aux interventions de l'enseignant connecte (US-4.6).
-      const donnees = await apiFetch("/comptes/interventions-enseignants/").then((r) => r.json());
+      // actif=true : une classe desaffectee (ex. correction de la regle de
+      // polyvalence) ne doit plus apparaitre dans son espace.
+      const donnees = await apiFetch("/comptes/interventions-enseignants/?actif=true").then((r) => r.json());
       const liste: Intervention[] = donnees.results ?? [];
       setInterventions(liste);
 
