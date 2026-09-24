@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
 import { apiFetch, extraireErreurApi } from "@/lib/api";
+import { PROFILS_ECRITURE_ETABLISSEMENT, useUtilisateurCourant } from "@/lib/contexte-utilisateur";
 import { useFormulaireDialogue } from "@/lib/hooks/use-formulaire-dialogue";
 import { useRessource, useRessourcePaginee } from "@/lib/hooks/use-ressource";
 import { suggererIdentifiant } from "@/lib/utils";
@@ -29,6 +30,8 @@ type Ecole = { id: string; nom: string };
 type Classe = { id: string; libelle: string; cycle_libelle: string };
 
 export default function EnseignantsPage() {
+  const utilisateur = useUtilisateurCourant();
+  const peutEcrire = !!utilisateur && PROFILS_ECRITURE_ETABLISSEMENT.includes(utilisateur.profil);
   const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, recharger } =
     useRessourcePaginee<Enseignant>("/comptes/enseignants/");
 
@@ -61,12 +64,16 @@ export default function EnseignantsPage() {
         },
         { label: "Matière principale", rendu: (e) => e.matiere_principale || "—" },
         { label: "Statut", rendu: (e) => <Badge variant="succes">{e.statut_enseignant_display}</Badge> },
-        {
-          label: "Actions",
-          rendu: (e) => <DialogueAffecterIntervention enseignant={e} onAffecte={recharger} />,
-        },
+        ...(peutEcrire
+          ? [
+              {
+                label: "Actions",
+                rendu: (e: Enseignant) => <DialogueAffecterIntervention enseignant={e} onAffecte={recharger} />,
+              },
+            ]
+          : []),
       ]}
-      actionsEnTete={<DialogueCreerEnseignant onCree={recharger} />}
+      actionsEnTete={peutEcrire ? <DialogueCreerEnseignant onCree={recharger} /> : undefined}
     />
   );
 }

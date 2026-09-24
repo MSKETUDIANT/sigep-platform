@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
+import { PROFILS_ECRITURE_ETABLISSEMENT, useUtilisateurCourant } from "@/lib/contexte-utilisateur";
 import { useFormulaireDialogue } from "@/lib/hooks/use-formulaire-dialogue";
 import { useRessource, useRessourcePaginee } from "@/lib/hooks/use-ressource";
 
@@ -26,6 +27,8 @@ type Equipement = {
 type Ecole = { id: string; nom: string };
 
 export default function EquipementsPage() {
+  const utilisateur = useUtilisateurCourant();
+  const peutEcrire = !!utilisateur && PROFILS_ECRITURE_ETABLISSEMENT.includes(utilisateur.profil);
   const [ecoleFiltre, setEcoleFiltre] = useState("Toutes");
   const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer } =
     useRessourcePaginee<Equipement>("/etablissements/equipements/", {
@@ -81,6 +84,7 @@ export default function EquipementsPage() {
         { label: "Hors service", rendu: (e) => (e.hors_service > 0 ? <Badge variant="destructive">{e.hors_service}</Badge> : "0") },
       ]}
       actionsEnTete={
+        peutEcrire ? (
         <Dialog open={dialogue.ouvert} onOpenChange={dialogue.setOuvert}>
           <DialogTrigger asChild>
             <Button size="sm">
@@ -167,6 +171,7 @@ export default function EquipementsPage() {
             </form>
           </DialogContent>
         </Dialog>
+        ) : undefined
       }
     />
   );

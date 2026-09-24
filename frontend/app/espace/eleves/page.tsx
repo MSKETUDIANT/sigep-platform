@@ -10,7 +10,8 @@ import { InputTelephone, formaterTelephoneGuinee } from "@/components/ui/input-t
 import { Label } from "@/components/ui/label";
 import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, extraireErreurApi } from "@/lib/api";
+import { PROFILS_ECRITURE_ETABLISSEMENT, useUtilisateurCourant } from "@/lib/contexte-utilisateur";
 import { useFormulaireDialogue } from "@/lib/hooks/use-formulaire-dialogue";
 import { useRessource, useRessourcePaginee } from "@/lib/hooks/use-ressource";
 
@@ -37,6 +38,8 @@ const LIENS = [
 ];
 
 export default function ElevesPage() {
+  const utilisateur = useUtilisateurCourant();
+  const peutEcrire = !!utilisateur && PROFILS_ECRITURE_ETABLISSEMENT.includes(utilisateur.profil);
   const [recherche, setRecherche] = useState("");
   const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer, recharger } =
     useRessourcePaginee<Eleve>("/pedagogie/eleves/", { recherche });
@@ -89,9 +92,13 @@ export default function ElevesPage() {
         { label: "Sexe", rendu: (e) => e.sexe_display },
         { label: "École", rendu: (e) => e.ecole_nom },
         { label: "Classe", rendu: (e) => e.classe_libelle },
-        { label: "Filiation", rendu: (e) => <DialogueFiliation eleve={e} onChange={recharger} /> },
+        {
+          label: "Filiation",
+          rendu: (e) => <DialogueFiliation eleve={e} onChange={recharger} peutEcrire={peutEcrire} />,
+        },
       ]}
       actionsEnTete={
+        peutEcrire ? (
         <Dialog open={dialogue.ouvert} onOpenChange={dialogue.setOuvert}>
           <DialogTrigger asChild>
             <Button size="sm">
@@ -177,12 +184,21 @@ export default function ElevesPage() {
             </form>
           </DialogContent>
         </Dialog>
+        ) : undefined
       }
     />
   );
 }
 
-function DialogueFiliation({ eleve, onChange }: { eleve: Eleve; onChange: () => void }) {
+function DialogueFiliation({
+  eleve,
+  onChange,
+  peutEcrire,
+}: {
+  eleve: Eleve;
+  onChange: () => void;
+  peutEcrire: boolean;
+}) {
   const [ouvert, setOuvert] = useState(false);
   const [lien, setLien] = useState("pere");
   const [nomComplet, setNomComplet] = useState("");
@@ -206,7 +222,8 @@ function DialogueFiliation({ eleve, onChange }: { eleve: Eleve; onChange: () => 
           urgence,
         }),
       });
-      if (!reponse.ok) throw new Error(JSON.stringify(await reponse.json()));
+      const donnees = await reponse.json();
+      if (!reponse.ok) throw new Error(extraireErreurApi(donnees));
       setNomComplet("");
       setTelephone("");
       setUrgence(false);
@@ -217,6 +234,8 @@ function DialogueFiliation({ eleve, onChange }: { eleve: Eleve; onChange: () => 
       setEnCours(false);
     }
   }
+
+  if (eleve.filiations.length === 0 && !peutEcrire) return null;
 
   return (
     <Dialog open={ouvert} onOpenChange={setOuvert}>
@@ -245,6 +264,7 @@ function DialogueFiliation({ eleve, onChange }: { eleve: Eleve; onChange: () => 
           </ul>
         )}
 
+        {peutEcrire && (
         <form className="flex flex-col gap-3" onSubmit={ajouter}>
           <div>
             <Label htmlFor="fil-lien">Lien</Label>
@@ -273,6 +293,7 @@ function DialogueFiliation({ eleve, onChange }: { eleve: Eleve; onChange: () => 
             {enCours ? "Ajout..." : "Ajouter ce contact"}
           </Button>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -40,3 +40,11 @@ export const UtilisateurContext = createContext<Utilisateur | null>(null);
 export function useUtilisateurCourant() {
   return useContext(UtilisateurContext);
 }
+
+// Profils autorisés en écriture sur Enseignants/Élèves/Équipements côté
+// backend (apps.core.permissions.LectureAuthentifieEcritureSuperAdminOuDirecteurEcole) —
+// à utiliser pour n'afficher les boutons "Ajouter"/"Affecter" qu'aux profils
+// qui peuvent réellement soumettre le formulaire, plutôt que de laisser un
+// profil territorial en lecture seule (DSE/DCE/DPE/IR/DGE/Ministre/Cabinet)
+// remplir un formulaire pour se prendre un 403 à la fin.
+export const PROFILS_ECRITURE_ETABLISSEMENT = ["super_admin", "directeur_ecole"];

@@ -10,9 +10,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
+import { useUtilisateurCourant } from "@/lib/contexte-utilisateur";
 import { useFormulaireDialogue } from "@/lib/hooks/use-formulaire-dialogue";
 import { useRessource, useRessourcePaginee } from "@/lib/hooks/use-ressource";
 import { cn } from "@/lib/utils";
+
+// Création d'école réservée au Super Admin côté backend (org/views.py,
+// EcoleViewSet.get_permissions) — dossier §17 : seul le Super Admin a
+// "Création des unités territoriales". Le bouton ne doit donc apparaître
+// qu'à ce profil, sinon les autres profils de gestion remplissent un
+// formulaire pour se prendre un 403 à la fin.
+const PROFILS_CREATION_ECOLE = ["super_admin"];
 
 type Ecole = {
   id: string;
@@ -66,6 +74,8 @@ function EtatBadge({ etat, label }: { etat: string; label: string }) {
 }
 
 export default function EcolesPage() {
+  const utilisateur = useUtilisateurCourant();
+  const peutCreer = !!utilisateur && PROFILS_CREATION_ECOLE.includes(utilisateur.profil);
   const [recherche, setRecherche] = useState("");
   const [filtreEtat, setFiltreEtat] = useState<(typeof FILTRES_ETAT)[number]["valeur"]>("Tous");
   const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer } =
@@ -145,6 +155,7 @@ export default function EcolesPage() {
         { label: "Élèves", rendu: (e) => e.nombre_eleves },
       ]}
       actionsEnTete={
+        peutCreer ? (
         <Dialog open={dialogue.ouvert} onOpenChange={dialogue.setOuvert}>
           <DialogTrigger asChild>
             <Button size="sm">
@@ -260,6 +271,7 @@ export default function EcolesPage() {
             </form>
           </DialogContent>
         </Dialog>
+        ) : undefined
       }
     />
   );
