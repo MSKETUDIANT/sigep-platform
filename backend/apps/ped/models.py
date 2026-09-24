@@ -135,6 +135,14 @@ class Note(models.Model):
         indexes = [
             models.Index(fields=["eleve", "annee_academique", "trimestre"], name="idx_note_eleve_periode"),
         ]
+        constraints = [
+            # Empêche la double saisie du même devoir pour le même élève — le
+            # frontend PATCH la note existante plutôt que d'en recréer une.
+            models.UniqueConstraint(
+                fields=["eleve", "matiere", "trimestre", "type_evaluation", "annee_academique"],
+                name="uq_note_eleve_matiere_trimestre_evaluation",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.eleve.nom_complet} — {self.matiere} ({self.trimestre}) : {self.valeur}/20"
