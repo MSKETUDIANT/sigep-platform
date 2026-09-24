@@ -115,7 +115,10 @@ export default function ElevesPage() {
             <div className="flex gap-2">
               <DialogueLivret eleve={e} />
               {peutEcrire && (
-                <DialogueModifierEleve eleve={e} onModifie={(payload) => mettreAJour(e.id, payload)} />
+                <>
+                  <DialogueModifierEleve eleve={e} onModifie={(payload) => mettreAJour(e.id, payload)} />
+                  <DialogueExamenDeliberation eleve={e} />
+                </>
               )}
             </div>
           ),
@@ -586,6 +589,195 @@ function DialogueLivret({ eleve }: { eleve: Eleve }) {
             </div>
           </div>
         )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const TYPES_EXAMEN = ["CEP", "BEPC", "BAC"];
+const STATUTS_DELIBERATION = [
+  { valeur: "admis", label: "Admis" },
+  { valeur: "redoublant", label: "Redoublant" },
+  { valeur: "examen_national_requis", label: "Examen national requis" },
+  { valeur: "exclu", label: "Exclu" },
+];
+const ANNEE_PAR_DEFAUT = "2026-2027";
+
+type InscriptionExamen = {
+  id: string;
+  type_examen: string;
+  annee_academique: string;
+  numero_candidat: string;
+  resultat: string;
+  resultat_display: string;
+  moyenne_examen: string | null;
+};
+type DeliberationDetail = {
+  id: string;
+  annee_academique: string;
+  moyenne_generale: string | null;
+  statut: string;
+  motif: string;
+};
+
+function DialogueExamenDeliberation({ eleve }: { eleve: Eleve }) {
+  const [ouvert, setOuvert] = useState(false);
+  const {
+    items: inscriptions,
+    creer: creerInscription,
+    mettreAJour: mettreAJourInscription,
+    recharger: rechargerInscriptions,
+  } = useRessource<InscriptionExamen>(`/pedagogie/inscriptions-examens/?eleve=${eleve.id}`);
+  const {
+    items: deliberations,
+    creer: creerDeliberation,
+    mettreAJour: mettreAJourDeliberation,
+    recharger: rechargerDeliberations,
+  } = useRessource<DeliberationDetail>(`/pedagogie/deliberations/?eleve=${eleve.id}`);
+
+  const [typeExamen, setTypeExamen] = useState("BEPC");
+  const [erreurExamen, setErreurExamen] = useState<string | null>(null);
+  const [enCoursExamen, setEnCoursExamen] = useState(false);
+
+  const deliberationCourante = deliberations.find((d) => d.annee_academique === ANNEE_PAR_DEFAUT);
+  const [statutDeliberation, setStatutDeliberation] = useState(deliberationCourante?.statut ?? "admis");
+  const [motifDeliberation, setMotifDeliberation] = useState(deliberationCourante?.motif ?? "");
+  const [erreurDeliberation, setErreurDeliberation] = useState<string | null>(null);
+  const [enCoursDeliberation, setEnCoursDeliberation] = useState(false);
+
+  async function inscrire(e: React.FormEvent) {
+    e.preventDefault();
+    setEnCoursExamen(true);
+    setErreurExamen(null);
+    try {
+      await creerInscription({ eleve: eleve.id, type_examen: typeExamen, annee_academique: ANNEE_PAR_DEFAUT });
+    } catch (err) {
+      setErreurExamen(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEnCoursExamen(false);
+    }
+  }
+
+  async function changerResultat(inscription: InscriptionExamen, resultat: string) {
+    await mettreAJourInscription(inscription.id, { resultat });
+    await rechargerInscriptions();
+  }
+
+  async function enregistrerDeliberation(e: React.FormEvent) {
+    e.preventDefault();
+    setEnCoursDeliberation(true);
+    setErreurDeliberation(null);
+    try {
+      const payload = {
+        eleve: eleve.id,
+        annee_academique: ANNEE_PAR_DEFAUT,
+        statut: statutDeliberation,
+        motif: motifDeliberation,
+      };
+      if (deliberationCourante) {
+        await mettreAJourDeliberation(deliberationCourante.id, payload);
+      } else {
+        await creerDeliberation(payload);
+      }
+      await rechargerDeliberations();
+    } catch (err) {
+      setErreurDeliberation(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEnCoursDeliberation(false);
+    }
+  }
+
+  return (
+    <Dialog open={ouvert} onOpenChange={setOuvert}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline">
+          Examens
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>
+            Examens & délibération — {eleve.prenoms} {eleve.nom}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
+          <div>
+            <h4 className="mb-2 text-sm font-semibold">Inscriptions aux examens</h4>
+            {inscriptions.length > 0 && (
+              <ul className="mb-2 flex flex-col gap-2">
+                {inscriptions.map((ins) => (
+                  <li key={ins.id} className="flex items-center justify-between rounded-md bg-muted p-2 text-sm">
+                    <span>
+                      {ins.type_examen} {ins.annee_academique} — {ins.numero_candidat}
+                    </span>
+                    <SelectNatif
+                      className="h-8 w-36 text-xs"
+                      value={ins.resultat}
+                      onChange={(e) => changerResultat(ins, e.target.value)}
+                    >
+                      <option value="en_attente">En attente</option>
+                      <option value="admis">Admis</option>
+                      <option value="echec">Échec</option>
+                    </SelectNatif>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <form className="flex items-end gap-2" onSubmit={inscrire}>
+              <div className="flex-1">
+                <Label htmlFor="exam-type">Nouvel examen</Label>
+                <SelectNatif id="exam-type" value={typeExamen} onChange={(e) => setTypeExamen(e.target.value)}>
+                  {TYPES_EXAMEN.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </SelectNatif>
+              </div>
+              <Button type="submit" size="sm" disabled={enCoursExamen}>
+                Inscrire
+              </Button>
+            </form>
+            {erreurExamen && <p className="text-sm text-destructive">{erreurExamen}</p>}
+          </div>
+
+          <div>
+            <h4 className="mb-2 text-sm font-semibold">Délibération {ANNEE_PAR_DEFAUT}</h4>
+            <form className="flex flex-col gap-3" onSubmit={enregistrerDeliberation}>
+              <div>
+                <Label htmlFor="delib-statut">Statut</Label>
+                <SelectNatif
+                  id="delib-statut"
+                  value={statutDeliberation}
+                  onChange={(e) => setStatutDeliberation(e.target.value)}
+                >
+                  {STATUTS_DELIBERATION.map((s) => (
+                    <option key={s.valeur} value={s.valeur}>
+                      {s.label}
+                    </option>
+                  ))}
+                </SelectNatif>
+              </div>
+              <div>
+                <Label htmlFor="delib-motif">Motif</Label>
+                <Input
+                  id="delib-motif"
+                  value={motifDeliberation}
+                  onChange={(e) => setMotifDeliberation(e.target.value)}
+                />
+              </div>
+              {deliberationCourante?.moyenne_generale && (
+                <p className="text-xs text-muted-foreground">
+                  Moyenne générale calculée : {deliberationCourante.moyenne_generale}/20
+                </p>
+              )}
+              {erreurDeliberation && <p className="text-sm text-destructive">{erreurDeliberation}</p>}
+              <Button type="submit" disabled={enCoursDeliberation}>
+                {enCoursDeliberation ? "Enregistrement..." : deliberationCourante ? "Mettre à jour" : "Délibérer"}
+              </Button>
+            </form>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
