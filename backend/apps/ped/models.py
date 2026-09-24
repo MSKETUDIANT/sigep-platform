@@ -39,7 +39,9 @@ class Eleve(models.Model):
     sexe = models.CharField(max_length=1, choices=Sexe.choices)
     date_naissance = models.DateField(null=True, blank=True)
     lieu_naissance = models.CharField(max_length=120, blank=True)
-    photo_url = models.TextField(blank=True)
+    # US-9.2 : vrai fichier uploadé (pas une URL à coller) — un directeur a une
+    # photo sur son téléphone/ordinateur, pas un lien déjà hébergé quelque part.
+    photo = models.ImageField(upload_to="eleves/photos/", null=True, blank=True)
 
     ecole = models.ForeignKey("org.Ecole", on_delete=models.PROTECT, related_name="eleves")
     classe = models.ForeignKey("ref.Classe", on_delete=models.PROTECT, related_name="eleves")

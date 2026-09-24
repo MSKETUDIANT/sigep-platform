@@ -18,7 +18,12 @@ export function clearSession() {
 export async function apiFetch(path: string, options: RequestInit = {}) {
   const token = getToken();
   const headers = new Headers(options.headers);
-  headers.set("Content-Type", "application/json");
+  // Un envoi de fichier (FormData, ex. photo élève) doit laisser le
+  // navigateur fixer lui-même Content-Type avec sa frontière multipart —
+  // la forcer à "application/json" casserait le parsing côté serveur.
+  if (!(options.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const reponse = await fetch(`${API_URL}${path}`, { ...options, headers });

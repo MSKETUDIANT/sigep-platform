@@ -26,7 +26,7 @@ type Eleve = {
   sexe_display: string;
   date_naissance: string | null;
   lieu_naissance: string;
-  photo_url: string;
+  photo_url: string | null;
   ecole_nom: string;
   classe_libelle: string;
   cycle_code: string;
@@ -97,7 +97,20 @@ export default function ElevesPage() {
         { label: "Matricule", rendu: (e) => <span className="font-mono text-xs">{e.matricule}</span> },
         {
           label: "Élève",
-          rendu: (e) => (
+          rendu: (e) =>
+            e.photo_url ? (
+              <div className="flex items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={e.photo_url}
+                  alt={`${e.prenoms} ${e.nom}`}
+                  className="h-8 w-8 flex-shrink-0 rounded-full object-cover"
+                />
+                <span className="font-medium">
+                  {e.prenoms} {e.nom}
+                </span>
+              </div>
+            ) : (
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
                 <Users className="h-4 w-4" />
@@ -345,7 +358,7 @@ function DialogueModifierEleve({
   const [sexe, setSexe] = useState(eleve.sexe);
   const [dateNaissance, setDateNaissance] = useState(eleve.date_naissance ?? "");
   const [lieuNaissance, setLieuNaissance] = useState(eleve.lieu_naissance);
-  const [photoUrl, setPhotoUrl] = useState(eleve.photo_url);
+  const [photoFichier, setPhotoFichier] = useState<File | null>(null);
   const [statut, setStatut] = useState(eleve.statut);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -355,13 +368,21 @@ function DialogueModifierEleve({
     setEnCours(true);
     setErreur(null);
     try {
+      // Photo d'abord (upload séparé, multipart) : onModifie() ci-dessous
+      // recharge la liste ensuite, donc la nouvelle photo doit déjà être
+      // enregistrée côté serveur pour apparaître dans le même passage.
+      if (photoFichier) {
+        const donnees = new FormData();
+        donnees.append("photo", photoFichier);
+        const reponse = await apiFetch(`/pedagogie/eleves/${eleve.id}/`, { method: "PATCH", body: donnees });
+        if (!reponse.ok) throw new Error(extraireErreurApi(await reponse.json()));
+      }
       await onModifie({
         nom,
         prenoms,
         sexe,
         date_naissance: dateNaissance || null,
         lieu_naissance: lieuNaissance,
-        photo_url: photoUrl,
         statut,
       });
       setOuvert(false);
@@ -383,7 +404,7 @@ function DialogueModifierEleve({
           setSexe(eleve.sexe);
           setDateNaissance(eleve.date_naissance ?? "");
           setLieuNaissance(eleve.lieu_naissance);
-          setPhotoUrl(eleve.photo_url);
+          setPhotoFichier(null);
           setStatut(eleve.statut);
           setErreur(null);
         }
@@ -435,13 +456,24 @@ function DialogueModifierEleve({
             <Input id="ele-mod-lieu" value={lieuNaissance} onChange={(e) => setLieuNaissance(e.target.value)} />
           </div>
           <div>
-            <Label htmlFor="ele-mod-photo">Photo (URL)</Label>
-            <Input
-              id="ele-mod-photo"
-              value={photoUrl}
-              onChange={(e) => setPhotoUrl(e.target.value)}
-              placeholder="https://..."
-            />
+            <Label htmlFor="ele-mod-photo">Photo</Label>
+            <div className="flex items-center gap-3">
+              {eleve.photo_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={eleve.photo_url}
+                  alt={`Photo de ${eleve.prenoms} ${eleve.nom}`}
+                  className="h-12 w-12 flex-shrink-0 rounded-full object-cover"
+                />
+              )}
+              <Input
+                id="ele-mod-photo"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setPhotoFichier(e.target.files?.[0] ?? null)}
+                className="flex-1"
+              />
+            </div>
           </div>
           <div>
             <Label htmlFor="ele-mod-statut">Statut</Label>

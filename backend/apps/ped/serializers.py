@@ -23,16 +23,26 @@ class EleveSerializer(serializers.ModelSerializer):
     statut_display = serializers.CharField(source="get_statut_display", read_only=True)
     sexe_display = serializers.CharField(source="get_sexe_display", read_only=True)
     filiations = FiliationSerializer(many=True, read_only=True)
+    # US-9.2 : "photo" reçoit le fichier envoyé (multipart), "photo_url" est
+    # l'URL absolue à afficher — jamais l'inverse, une URL ne se "colle" plus.
+    photo_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Eleve
         fields = [
             "id", "matricule", "nom", "prenoms", "sexe", "sexe_display",
-            "date_naissance", "lieu_naissance", "photo_url",
+            "date_naissance", "lieu_naissance", "photo", "photo_url",
             "ecole", "ecole_nom", "classe", "classe_libelle", "cycle_code", "annee_academique",
             "statut", "statut_display", "filiations", "cree_le", "modifie_le",
         ]
         read_only_fields = ["id", "matricule", "cree_le", "modifie_le"]
+        extra_kwargs = {"photo": {"write_only": True, "required": False}}
+
+    def get_photo_url(self, obj):
+        if not obj.photo:
+            return None
+        request = self.context.get("request")
+        return request.build_absolute_uri(obj.photo.url) if request else obj.photo.url
 
 
 class NoteSerializer(serializers.ModelSerializer):

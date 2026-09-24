@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
@@ -13,3 +15,8 @@ urlpatterns = [
     path("api/public/", include("apps.org.urls_public")),
     path("api/public/", include("apps.trv.urls_public")),
 ]
+
+if settings.DEBUG:
+    # En production, un vrai serveur de fichiers (nginx, S3...) doit servir
+    # MEDIA_ROOT — Django ne le fait jamais lui-même hors DEBUG.
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
