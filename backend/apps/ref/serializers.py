@@ -18,6 +18,16 @@ class PrefectureSerializer(serializers.ModelSerializer):
         fields = "__all__"
         read_only_fields = ("code",)
 
+    def validate_region(self, region):
+        """§2.1 : Conakry est une zone spéciale, rattachée directement au
+        schéma B (Quartier -> Commune -> Région) — elle n'a jamais de
+        préfecture."""
+        if region.type_zone == "zone_speciale":
+            raise serializers.ValidationError(
+                f"{region.nom} est une zone spéciale : elle n'a pas de préfecture (schéma B uniquement)."
+            )
+        return region
+
 
 class SousPrefectureSerializer(serializers.ModelSerializer):
     prefecture_nom = serializers.CharField(source="prefecture.nom", read_only=True)

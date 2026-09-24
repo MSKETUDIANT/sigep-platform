@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Building2, Landmark, type LucideIcon, Map as MapIcon, MapPin, Navigation, Plus } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,7 @@ import { cn } from "@/lib/utils";
 // un 403 à la soumission (même logique que PROFILS_ECRITURE_ETABLISSEMENT).
 const PROFILS_ECRITURE_TERRITOIRE = ["super_admin"];
 
-type Region = { id: string; code: string; nom: string; chef_lieu: string | null; actif: boolean };
+type Region = { id: string; code: string; nom: string; chef_lieu: string | null; actif: boolean; type_zone: string };
 type Prefecture = { id: string; code: string; nom: string; region: string; region_nom: string };
 type SousPrefecture = {
   id: string;
@@ -181,7 +182,15 @@ function SectionRegions() {
       filtres={<Input placeholder="Rechercher une région..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="max-w-xs" />}
       colonnes={[
         { label: "Code", rendu: (r) => r.code },
-        { label: "Nom", rendu: (r) => <IconeNiveau icone={MapIcon} accent="bg-primary" nom={r.nom} /> },
+        {
+          label: "Nom",
+          rendu: (r) => (
+            <div className="flex items-center gap-2">
+              <IconeNiveau icone={MapIcon} accent="bg-primary" nom={r.nom} />
+              {r.type_zone === "zone_speciale" && <Badge variant="accent">Zone spéciale</Badge>}
+            </div>
+          ),
+        },
         { label: "Chef-lieu", rendu: (r) => r.chef_lieu ?? "—" },
       ]}
       actionsEnTete={
@@ -289,12 +298,17 @@ function SectionPrefectures() {
                 <Label htmlFor="pref-region">Région</Label>
                 <SelectNatif id="pref-region" value={regionId} onChange={(e) => setRegionId(e.target.value)} required>
                   <option value="">— choisir —</option>
-                  {regions.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.nom}
-                    </option>
-                  ))}
+                  {regions
+                    .filter((r) => r.type_zone !== "zone_speciale")
+                    .map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.nom}
+                      </option>
+                    ))}
                 </SelectNatif>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Conakry (zone spéciale) n&apos;a pas de préfecture — schéma B uniquement.
+                </p>
               </div>
               <p className="text-xs text-muted-foreground">Le code est généré automatiquement.</p>
               {dialogue.erreur && <p className="text-sm text-destructive">{dialogue.erreur}</p>}
