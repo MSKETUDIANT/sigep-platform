@@ -27,7 +27,7 @@ type Enseignant = {
   statut_enseignant_display: string;
 };
 type Ecole = { id: string; nom: string };
-type Classe = { id: string; libelle: string; cycle_libelle: string };
+type Classe = { id: string; libelle: string; cycle_libelle: string; cycle_code: string };
 
 export default function EnseignantsPage() {
   const utilisateur = useUtilisateurCourant();
@@ -245,6 +245,9 @@ function DialogueAffecterIntervention({ enseignant, onAffecte }: { enseignant: E
   const [matiere, setMatiere] = useState(enseignant.matiere_principale);
   const [volumeHoraire, setVolumeHoraire] = useState("");
 
+  const classeChoisie = classes.find((c) => c.id === classeId);
+  const estPrimaire = classeChoisie?.cycle_code === "primaire";
+
   return (
     <Dialog open={dialogue.ouvert} onOpenChange={dialogue.setOuvert}>
       <DialogTrigger asChild>
@@ -265,7 +268,7 @@ function DialogueAffecterIntervention({ enseignant, onAffecte }: { enseignant: E
               enseignant: enseignant.id,
               ecole: ecoleId,
               classe: classeId,
-              matiere,
+              matiere: estPrimaire ? "" : matiere,
               volume_horaire_hebdo: volumeHoraire || 0,
             });
           }}
@@ -292,10 +295,21 @@ function DialogueAffecterIntervention({ enseignant, onAffecte }: { enseignant: E
               ))}
             </SelectNatif>
           </div>
-          <div>
-            <Label htmlFor="int-matiere">Matière</Label>
-            <Input id="int-matiere" value={matiere} onChange={(e) => setMatiere(e.target.value)} required />
-          </div>
+          {estPrimaire ? (
+            <p className="rounded-md bg-muted p-2 text-xs text-muted-foreground">
+              Classe du primaire : l&apos;enseignant est polyvalent (toutes matières) et ne peut être
+              titulaire que d&apos;une seule classe à la fois.
+            </p>
+          ) : (
+            <div>
+              <Label htmlFor="int-matiere">Matière</Label>
+              <Input id="int-matiere" value={matiere} onChange={(e) => setMatiere(e.target.value)} required />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Collège/Lycée : plusieurs affectations possibles (jusqu&apos;à 4), une matière par
+                affectation.
+              </p>
+            </div>
+          )}
           <div>
             <Label htmlFor="int-volume">Volume horaire hebdomadaire</Label>
             <Input

@@ -65,6 +65,7 @@ class CycleSerializer(serializers.ModelSerializer):
 
 class ClasseSerializer(serializers.ModelSerializer):
     cycle_libelle = serializers.CharField(source="cycle.libelle", read_only=True)
+    cycle_code = serializers.CharField(source="cycle.code", read_only=True)
 
     class Meta:
         model = Classe

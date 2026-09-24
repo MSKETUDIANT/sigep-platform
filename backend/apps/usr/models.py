@@ -161,13 +161,24 @@ class InterventionEnseignant(models.Model):
     """US-4.1/US-4.2/US-4.6 : rattachement direct d'un enseignant à une école et
     une classe, avec matière et volume horaire (§7.1, §11.4). Version simple,
     hors circuit de validation à 4 niveaux (celui-ci concerne les MUTATIONS
-    formelles entre écoles — EPIC 10, Sprint 7-8)."""
+    formelles entre écoles — EPIC 10, Sprint 7-8).
+
+    Règle de polyvalence (confirmée par le rapport officiel sur l'enseignement
+    guinéen, 2026-09-25) : au primaire, l'enseignant est polyvalent et
+    titulaire d'une seule classe (il fait toutes les matières) — une seule
+    intervention active à la fois, matière laissée vide. Au secondaire
+    (collège/lycée), les enseignants sont spécialisés par matière ; la
+    polyvalence y est rare et due à une pénurie de profs (anglais, maths...),
+    donc plusieurs interventions actives sont possibles mais chacune avec une
+    matière précisée, plafonnées à LIMITE_INTERVENTIONS_SECONDAIRE. Un
+    enseignant ne peut jamais cumuler une intervention primaire et une
+    intervention secondaire. Voir usr.services.valider_polyvalence()."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     enseignant = models.ForeignKey(Enseignant, on_delete=models.CASCADE, related_name="interventions")
     ecole = models.ForeignKey("org.Ecole", on_delete=models.PROTECT, related_name="interventions_enseignants")
     classe = models.ForeignKey("ref.Classe", on_delete=models.PROTECT, related_name="interventions_enseignants")
-    matiere = models.CharField(max_length=100)
+    matiere = models.CharField(max_length=100, blank=True)  # vide au primaire ("toutes matières")
     volume_horaire_hebdo = models.DecimalField(max_digits=4, decimal_places=1, default=0)
     annee_academique = models.CharField(max_length=9, default="2026-2027")
     actif = models.BooleanField(default=True)

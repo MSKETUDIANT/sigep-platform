@@ -44,10 +44,16 @@ def _q_eleves_enseignant(user, ecole_field="ecole_id", classe_field="classe_id")
 
 
 def _enseignant_habilite(user, ecole, classe, matiere) -> bool:
+    """Un enseignant du primaire est polyvalent — son InterventionEnseignant a
+    matiere="" ("toutes matières", voir usr.services.valider_polyvalence) et
+    l'habilite donc pour N'IMPORTE QUELLE matière sur sa classe, pas
+    seulement une correspondance exacte comme au secondaire."""
     fiche = getattr(user, "fiche_enseignant", None)
     if not fiche:
         return False
-    return fiche.interventions.filter(actif=True, ecole=ecole, classe=classe, matiere=matiere).exists()
+    return fiche.interventions.filter(actif=True, ecole=ecole, classe=classe).filter(
+        Q(matiere=matiere) | Q(matiere="")
+    ).exists()
 
 
 class EleveViewSet(viewsets.ModelViewSet):
@@ -200,8 +206,10 @@ class NoteViewSet(viewsets.ModelViewSet):
 
         if user.profil == "enseignant":
             fiche = getattr(user, "fiche_enseignant", None)
-            if not fiche or not fiche.interventions.filter(
-                actif=True, classe_id=classe_id, matiere=matiere
+            # matiere="" sur l'intervention = enseignant polyvalent du primaire,
+            # habilité pour n'importe quelle matière de notes (voir _enseignant_habilite).
+            if not fiche or not fiche.interventions.filter(actif=True, classe_id=classe_id).filter(
+                Q(matiere=matiere) | Q(matiere="")
             ).exists():
                 raise PermissionDenied("Vous n'avez pas d'intervention active pour cette classe et cette matière.")
         elif user.profil not in ("super_admin", "directeur_ecole"):

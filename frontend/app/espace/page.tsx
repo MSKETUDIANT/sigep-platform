@@ -297,7 +297,12 @@ type NoteExistante = { id: string; eleve: string; type_evaluation: string; valeu
 
 function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
   const bareme = baremeIntervention(intervention);
+  // Primaire : l'enseignant est polyvalent, InterventionEnseignant.matiere
+  // est vide ("toutes matières") — il choisit ici quelle matière il note,
+  // le champ n'est fixé que pour une intervention secondaire (spécialisée).
+  const polyvalent = intervention.matiere === "";
   const [ouvert, setOuvert] = useState(false);
+  const [matiereSaisie, setMatiereSaisie] = useState(intervention.matiere);
   const [trimestre, setTrimestre] = useState("T1");
   const [typeEvaluation, setTypeEvaluation] = useState("Devoir 1");
   const [anneeAcademique] = useState("2026-2027");
@@ -310,7 +315,9 @@ function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
     `/pedagogie/eleves/?ecole=${intervention.ecole}&classe=${intervention.classe}`
   );
   const { items: notesExistantes, recharger: rechargerNotes } = useRessource<NoteExistante>(
-    `/pedagogie/notes/?matiere=${encodeURIComponent(intervention.matiere)}&trimestre=${trimestre}&annee_academique=${anneeAcademique}`
+    matiereSaisie
+      ? `/pedagogie/notes/?matiere=${encodeURIComponent(matiereSaisie)}&trimestre=${trimestre}&annee_academique=${anneeAcademique}`
+      : ""
   );
 
   const noteParEleve = new Map(
@@ -328,6 +335,10 @@ function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
   }, [eleves, notesExistantes, typeEvaluation]);
 
   async function enregistrer() {
+    if (!matiereSaisie) {
+      setErreur("Choisissez la matière avant d'enregistrer.");
+      return;
+    }
     setEnCours(true);
     setErreur(null);
     setTransmis(null);
@@ -338,7 +349,7 @@ function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
         const existante = noteParEleve.get(e.id);
         const payload = {
           eleve: e.id,
-          matiere: intervention.matiere,
+          matiere: matiereSaisie,
           trimestre,
           type_evaluation: typeEvaluation,
           valeur,
@@ -358,6 +369,10 @@ function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
   }
 
   async function transmettre() {
+    if (!matiereSaisie) {
+      setErreur("Choisissez la matière avant de transmettre.");
+      return;
+    }
     setEnCours(true);
     setErreur(null);
     try {
@@ -365,7 +380,7 @@ function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
         method: "POST",
         body: JSON.stringify({
           classe: intervention.classe,
-          matiere: intervention.matiere,
+          matiere: matiereSaisie,
           trimestre,
           annee_academique: anneeAcademique,
         }),
@@ -394,10 +409,24 @@ function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            Notes — {intervention.matiere} ({intervention.classe_libelle}, /{bareme})
+            Notes — {matiereSaisie || "choisir une matière"} ({intervention.classe_libelle}, /{bareme})
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3">
+          {polyvalent && (
+            <div>
+              <Label htmlFor="notes-matiere">Matière</Label>
+              <Input
+                id="notes-matiere"
+                value={matiereSaisie}
+                onChange={(e) => setMatiereSaisie(e.target.value)}
+                placeholder="Français, Mathématiques, Sciences..."
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Enseignant polyvalent (primaire) — chaque matière est notée séparément.
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="notes-trimestre">Trimestre</Label>
@@ -467,10 +496,10 @@ function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
           {transmis && <p className="text-sm text-succes">{transmis}</p>}
           {erreur && <p className="text-sm text-destructive">{erreur}</p>}
           <div className="flex gap-2">
-            <Button onClick={enregistrer} disabled={enCours} className="flex-1">
+            <Button onClick={enregistrer} disabled={enCours || !matiereSaisie} className="flex-1">
               {enCours ? "Enregistrement..." : "Enregistrer"}
             </Button>
-            <Button onClick={transmettre} disabled={enCours} variant="secondary" className="flex-1">
+            <Button onClick={transmettre} disabled={enCours || !matiereSaisie} variant="secondary" className="flex-1">
               Transmettre
             </Button>
           </div>

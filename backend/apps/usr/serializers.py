@@ -3,6 +3,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.exceptions import AuthenticationFailed as JWTAuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from . import services
 from .models import Enseignant, InterventionEnseignant, StatutCompte, Utilisateur
 from .utils import envoyer_email_bienvenue, envoyer_otp, generer_mot_de_passe_provisoire
 
@@ -236,6 +237,20 @@ class InterventionEnseignantSerializer(serializers.ModelSerializer):
             "cycle_code", "matiere", "volume_horaire_hebdo", "annee_academique", "actif", "cree_le", "modifie_le",
         ]
         read_only_fields = ["id", "cree_le", "modifie_le"]
+
+    def validate(self, attrs):
+        enseignant = attrs.get("enseignant", getattr(self.instance, "enseignant", None))
+        classe = attrs.get("classe", getattr(self.instance, "classe", None))
+        matiere = attrs.get("matiere", getattr(self.instance, "matiere", ""))
+        actif = attrs.get("actif", getattr(self.instance, "actif", True))
+        # Seule une intervention active compte pour la règle de polyvalence —
+        # (ré)activer ou créer déclenche la vérification, désactiver/modifier
+        # les autres champs d'une intervention déjà inactive ne la déclenche pas.
+        if enseignant and classe and actif:
+            attrs["matiere"] = services.valider_polyvalence(
+                enseignant, classe, matiere, exclude_pk=getattr(self.instance, "pk", None)
+            )
+        return attrs
 
 
 class DemandeOtpSerializer(serializers.Serializer):
