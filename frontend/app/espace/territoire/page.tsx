@@ -9,9 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SelectNatif } from "@/components/ui/select-natif";
 import { SectionTable } from "@/components/section-table";
+import { useUtilisateurCourant } from "@/lib/contexte-utilisateur";
 import { useFormulaireDialogue } from "@/lib/hooks/use-formulaire-dialogue";
 import { useRessource, useRessourcePaginee } from "@/lib/hooks/use-ressource";
 import { cn } from "@/lib/utils";
+
+// Écriture réservée au Super Admin sur les 5 niveaux territoriaux
+// (apps.ref.views, LectureAuthentifieEcritureSuperAdmin) — miroir exact
+// côté frontend pour ne pas proposer "Ajouter" à un profil qui se prendra
+// un 403 à la soumission (même logique que PROFILS_ECRITURE_ETABLISSEMENT).
+const PROFILS_ECRITURE_TERRITOIRE = ["super_admin"];
 
 type Region = { id: string; code: string; nom: string; chef_lieu: string | null; actif: boolean };
 type Prefecture = { id: string; code: string; nom: string; region: string; region_nom: string };
@@ -150,6 +157,8 @@ function PastillesFiltre<T extends string>({
 }
 
 function SectionRegions() {
+  const utilisateur = useUtilisateurCourant();
+  const peutEcrire = !!utilisateur && PROFILS_ECRITURE_TERRITOIRE.includes(utilisateur.profil);
   const [recherche, setRecherche] = useState("");
   const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer } =
     useRessourcePaginee<Region>("/territoire/regions/", { recherche });
@@ -176,6 +185,7 @@ function SectionRegions() {
         { label: "Chef-lieu", rendu: (r) => r.chef_lieu ?? "—" },
       ]}
       actionsEnTete={
+        peutEcrire ? (
         <Dialog open={dialogue.ouvert} onOpenChange={dialogue.setOuvert}>
           <DialogTrigger asChild>
             <Button size="sm">
@@ -213,12 +223,15 @@ function SectionRegions() {
             </form>
           </DialogContent>
         </Dialog>
+        ) : undefined
       }
     />
   );
 }
 
 function SectionPrefectures() {
+  const utilisateur = useUtilisateurCourant();
+  const peutEcrire = !!utilisateur && PROFILS_ECRITURE_TERRITOIRE.includes(utilisateur.profil);
   const [recherche, setRecherche] = useState("");
   const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer } =
     useRessourcePaginee<Prefecture>("/territoire/prefectures/", { recherche });
@@ -246,6 +259,7 @@ function SectionPrefectures() {
         { label: "Région", rendu: (p) => p.region_nom },
       ]}
       actionsEnTete={
+        peutEcrire ? (
         <Dialog open={dialogue.ouvert} onOpenChange={dialogue.setOuvert}>
           <DialogTrigger asChild>
             <Button size="sm">
@@ -290,6 +304,7 @@ function SectionPrefectures() {
             </form>
           </DialogContent>
         </Dialog>
+        ) : undefined
       }
     />
   );
@@ -309,6 +324,8 @@ const FILTRES_STATUT_QUARTIER = [
 ];
 
 function SectionSousPrefectures() {
+  const utilisateur = useUtilisateurCourant();
+  const peutEcrire = !!utilisateur && PROFILS_ECRITURE_TERRITOIRE.includes(utilisateur.profil);
   const [recherche, setRecherche] = useState("");
   const [filtreStatut, setFiltreStatut] =
     useState<(typeof FILTRES_STATUT_SOUS_PREFECTURE)[number]["valeur"]>("Tous");
@@ -357,6 +374,7 @@ function SectionSousPrefectures() {
         { label: "Écoles", rendu: (s) => s.nombre_ecoles },
       ]}
       actionsEnTete={
+        peutEcrire ? (
         <Dialog open={dialogue.ouvert} onOpenChange={dialogue.setOuvert}>
           <DialogTrigger asChild>
             <Button size="sm">
@@ -406,6 +424,7 @@ function SectionSousPrefectures() {
             </form>
           </DialogContent>
         </Dialog>
+        ) : undefined
       }
     />
   );
@@ -418,6 +437,8 @@ const FILTRES_TYPE_COMMUNE = [
 ];
 
 function SectionCommunes() {
+  const utilisateur = useUtilisateurCourant();
+  const peutEcrire = !!utilisateur && PROFILS_ECRITURE_TERRITOIRE.includes(utilisateur.profil);
   const [recherche, setRecherche] = useState("");
   const [filtreType, setFiltreType] = useState<(typeof FILTRES_TYPE_COMMUNE)[number]["valeur"]>("Tous");
   const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer } =
@@ -456,6 +477,7 @@ function SectionCommunes() {
         { label: "Type", rendu: (c) => (c.type_commune === "urbaine" ? "Urbaine" : "Rurale") },
       ]}
       actionsEnTete={
+        peutEcrire ? (
         <Dialog open={dialogue.ouvert} onOpenChange={dialogue.setOuvert}>
           <DialogTrigger asChild>
             <Button size="sm">
@@ -507,12 +529,15 @@ function SectionCommunes() {
             </form>
           </DialogContent>
         </Dialog>
+        ) : undefined
       }
     />
   );
 }
 
 function SectionQuartiers() {
+  const utilisateur = useUtilisateurCourant();
+  const peutEcrire = !!utilisateur && PROFILS_ECRITURE_TERRITOIRE.includes(utilisateur.profil);
   const [recherche, setRecherche] = useState("");
   const [filtreStatut, setFiltreStatut] = useState<(typeof FILTRES_STATUT_QUARTIER)[number]["valeur"]>("Tous");
   const { items, count, page, setPage, pageSize, setPageSize, totalPages, chargement, erreur, creer, mettreAJour } =
@@ -559,6 +584,7 @@ function SectionQuartiers() {
         },
       ]}
       actionsEnTete={
+        peutEcrire ? (
         <Dialog open={dialogue.ouvert} onOpenChange={dialogue.setOuvert}>
           <DialogTrigger asChild>
             <Button size="sm">
@@ -603,6 +629,7 @@ function SectionQuartiers() {
             </form>
           </DialogContent>
         </Dialog>
+        ) : undefined
       }
     />
   );
