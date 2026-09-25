@@ -294,6 +294,15 @@ const TRIMESTRES = [
   { valeur: "T3", label: "3e trimestre" },
 ];
 
+// Liste provisoire (programme primaire francophone courant), pas confirmée
+// par l'utilisateur contrairement aux catalogues collège/lycée
+// (/espace/enseignants) — doit rester synchronisée avec
+// backend/apps/usr/services.py::MATIERES_PRIMAIRE.
+const MATIERES_PRIMAIRE = [
+  "Français", "Mathématiques", "Sciences", "Histoire-Géographie",
+  "Éducation Civique et Morale", "Éducation Physique et Sportive",
+];
+
 type EleveLeger = { id: string; nom: string; prenoms: string };
 type NoteExistante = { id: string; eleve: string; type_evaluation: string; valeur: string; verrouille: boolean };
 
@@ -418,12 +427,14 @@ function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
           {polyvalent && (
             <div>
               <Label htmlFor="notes-matiere">Matière</Label>
-              <Input
-                id="notes-matiere"
-                value={matiereSaisie}
-                onChange={(e) => setMatiereSaisie(e.target.value)}
-                placeholder="Français, Mathématiques, Sciences..."
-              />
+              <SelectNatif id="notes-matiere" value={matiereSaisie} onChange={(e) => setMatiereSaisie(e.target.value)}>
+                <option value="">— choisir —</option>
+                {MATIERES_PRIMAIRE.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </SelectNatif>
               <p className="mt-1 text-xs text-muted-foreground">
                 Enseignant polyvalent (primaire) — chaque matière est notée séparément.
               </p>

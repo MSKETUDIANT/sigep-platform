@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from apps.usr import services as usr_services
+
 from . import services
 from .models import Deliberation, Eleve, Filiation, InscriptionExamen, Note, Presence
 
@@ -66,11 +68,18 @@ class NoteSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         eleve = attrs.get("eleve", getattr(self.instance, "eleve", None))
         valeur = attrs.get("valeur", getattr(self.instance, "valeur", None))
+        matiere = attrs.get("matiere", getattr(self.instance, "matiere", None))
         if eleve is not None and valeur is not None:
             max_note = services.bareme(eleve)
             if valeur < 0 or valeur > max_note:
                 raise serializers.ValidationError(
                     {"valeur": f"La note doit être comprise entre 0 et {max_note} pour cet élève."}
+                )
+        if eleve is not None and matiere:
+            catalogue = usr_services.MATIERES_PAR_CYCLE.get(eleve.classe.cycle.code, [])
+            if matiere not in catalogue:
+                raise serializers.ValidationError(
+                    {"matiere": f"Matière invalide pour ce cycle. Choix possibles : {', '.join(catalogue)}."}
                 )
         return attrs
 

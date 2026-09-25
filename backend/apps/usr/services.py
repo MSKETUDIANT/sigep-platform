@@ -13,6 +13,16 @@ from rest_framework.exceptions import ValidationError
 
 LIMITE_INTERVENTIONS_SECONDAIRE = 4
 
+# Liste provisoire (programme primaire francophone courant), PAS confirmée par
+# l'utilisateur contrairement à MATIERES_COLLEGE/MATIERES_LYCEE — à ajuster
+# s'il donne une liste officielle. Sert uniquement à la saisie des notes par
+# matière d'un enseignant polyvalent (ped.Note) : InterventionEnseignant.matiere
+# reste "" au primaire (un seul titulaire, toutes matières — voir
+# valider_polyvalence), cette liste ne concerne pas l'affectation à une classe.
+MATIERES_PRIMAIRE = [
+    "Français", "Mathématiques", "Sciences", "Histoire-Géographie",
+    "Éducation Civique et Morale", "Éducation Physique et Sportive",
+]
 MATIERES_COLLEGE = [
     "Français", "Mathématiques", "Physique", "Chimie", "Biologie",
     "Histoire", "Géographie", "Éducation Civique et Morale", "Anglais",
@@ -25,7 +35,7 @@ MATIERES_LYCEE = [
     "Mathématiques", "Physique", "Chimie", "Sciences de la Vie et de la Terre",
     "Histoire", "Géographie", "Économie",
 ]
-MATIERES_PAR_CYCLE = {"college": MATIERES_COLLEGE, "lycee": MATIERES_LYCEE}
+MATIERES_PAR_CYCLE = {"primaire": MATIERES_PRIMAIRE, "college": MATIERES_COLLEGE, "lycee": MATIERES_LYCEE}
 TOUTES_MATIERES_OFFICIELLES = sorted(set(MATIERES_COLLEGE) | set(MATIERES_LYCEE))
 
 
