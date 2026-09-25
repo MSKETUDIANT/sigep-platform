@@ -7,6 +7,7 @@ import {
   Clock,
   GraduationCap,
   Landmark,
+  Lock,
   MapPin,
   Navigation,
   Map as MapIcon,
@@ -358,6 +359,10 @@ function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
         const valeur = valeurs[e.id];
         if (valeur === undefined || valeur === "") continue;
         const existante = noteParEleve.get(e.id);
+        // Une note verrouillée ne se resoumet jamais : sans ce filtre, son
+        // rejet (403) interrompait la boucle et empêchait l'enregistrement
+        // de tous les élèves suivants, même valides.
+        if (existante?.verrouille) continue;
         const payload = {
           eleve: e.id,
           matiere: matiereSaisie,
@@ -476,10 +481,19 @@ function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
                 <TableBody>
                   {eleves.map((e) => {
                     const existante = noteParEleve.get(e.id);
+                    const verrouille = existante?.verrouille;
                     return (
-                      <TableRow key={e.id}>
+                      <TableRow key={e.id} className={verrouille ? "bg-muted/50" : undefined}>
                         <TableCell>
-                          {e.prenoms} {e.nom}
+                          <div className="flex items-center gap-1.5">
+                            {e.prenoms} {e.nom}
+                            {verrouille && (
+                              <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                <Lock className="h-2.5 w-2.5" />
+                                Transmise
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Input
@@ -489,7 +503,8 @@ function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
                             step="0.5"
                             className="h-8 w-20"
                             value={valeurs[e.id] ?? ""}
-                            disabled={existante?.verrouille}
+                            disabled={verrouille}
+                            title={verrouille ? "Note transmise et verrouillée — non modifiable ici" : undefined}
                             onChange={(ev) => setValeurs((v) => ({ ...v, [e.id]: ev.target.value }))}
                           />
                         </TableCell>
@@ -502,8 +517,10 @@ function DialogueSaisirNotes({ intervention }: { intervention: Intervention }) {
           )}
 
           {uneNoteVerrouillee && (
-            <p className="text-xs text-accent">
-              Certaines notes de cette évaluation sont déjà transmises (verrouillées) — non modifiables ici.
+            <p className="flex items-center gap-1.5 text-xs text-accent">
+              <Lock className="h-3 w-3" />
+              Élève(s) marqué(s) « Transmise » : note déjà verrouillée, ignorée si vous cliquez
+              Enregistrer — seuls Directeur ou Super Admin peuvent encore la corriger.
             </p>
           )}
           {transmis && <p className="text-sm text-succes">{transmis}</p>}
